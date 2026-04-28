@@ -1,0 +1,4 @@
+.code*
+openspec
+node_modules
+dist
