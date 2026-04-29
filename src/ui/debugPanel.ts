@@ -9,6 +9,8 @@ import type { UpgradeId } from "../gameplay/progression/upgrades";
 interface DebugPanelHandlers {
   onApplyPreset: (presetId: DebugBuildPresetId) => void;
   onForceWave: (waveNumber: number) => void;
+  onForceGameOver: () => void;
+  onForceVictory: () => void;
   onGrantUpgrade: (upgradeId: UpgradeId, count: number) => void;
   onSetSeed: (seed: string) => void;
   onUseLiveRandom: () => void;
@@ -99,6 +101,24 @@ export function createDebugPanel(
     waveControls.appendChild(button);
   }
 
+  const outcomeControls = document.createElement("div");
+  outcomeControls.className = "debug-panel-section";
+  outcomeControls.appendChild(createDebugLabel("Outcome screens"));
+
+  const forceLossButton = createDebugButton("Force Loss");
+  forceLossButton.addEventListener("click", () => {
+    handlers.onForceGameOver();
+    setStatus("Forced game-over screen.");
+  });
+
+  const forceWinButton = createDebugButton("Force Win");
+  forceWinButton.addEventListener("click", () => {
+    handlers.onForceVictory();
+    setStatus("Forced victory screen.");
+  });
+
+  outcomeControls.append(forceLossButton, forceWinButton);
+
   const grantControls = document.createElement("div");
   grantControls.className = "debug-panel-section is-wide";
   grantControls.appendChild(createDebugLabel("Grant boost"));
@@ -129,8 +149,10 @@ export function createDebugPanel(
   grantButton.addEventListener("click", () => {
     const upgradeId = upgradeSelect.value as UpgradeId;
     const count = Number.parseInt(countInput.value, 10) || 1;
+    const grantLabel =
+      upgradeSelect.selectedOptions[0]?.textContent?.trim() ?? upgradeId;
     handlers.onGrantUpgrade(upgradeId, count);
-    setStatus(`Granted ${upgradeId} x${Math.max(1, Math.min(6, count))}.`);
+    setStatus(`Granted ${grantLabel} x${Math.max(1, Math.min(6, count))}.`);
   });
 
   grantRow.append(upgradeSelect, countInput, grantButton);
@@ -141,7 +163,16 @@ export function createDebugPanel(
   help.textContent =
     "Shortcuts: Shift+1..5 presets, Shift+E/M/L/X/B waves, F9 panel. Dev-only; hidden from production runtime.";
 
-  root.append(header, status, seedRow, presets, waveControls, grantControls, help);
+  root.append(
+    header,
+    status,
+    seedRow,
+    presets,
+    waveControls,
+    outcomeControls,
+    grantControls,
+    help
+  );
   container.appendChild(root);
 
   const handleKeyDown = (event: KeyboardEvent): void => {

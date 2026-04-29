@@ -265,9 +265,9 @@ export const DEBUG_BUILD_PRESETS: DebugBuildPreset[] = [
     waveNumber: 1
   },
   {
-    description: "Late projectile chaos for pierce, chains, bounces, and bursts.",
+    description: "Late claim chaos for pierce, chains, bounces, and viral bursts.",
     id: "projectile-heavy",
-    label: "Projectile Heavy",
+    label: "Claim Storm",
     seed: "qa-projectiles-008",
     upgrades: [
       "split-lattice",
@@ -285,9 +285,9 @@ export const DEBUG_BUILD_PRESETS: DebugBuildPreset[] = [
     waveNumber: 8
   },
   {
-    description: "Dash build for Nova Dash, afterimages, and breach pulses.",
+    description: "Dash build for appeal pulses, echoes, and callback novas.",
     id: "dash-heavy",
-    label: "Dash Heavy",
+    label: "Appeal Dash",
     seed: "qa-dash-008",
     upgrades: [
       "nova-dash",
@@ -304,9 +304,9 @@ export const DEBUG_BUILD_PRESETS: DebugBuildPreset[] = [
     waveNumber: 8
   },
   {
-    description: "Orbitals and automatic fire for drone/satellite readability.",
+    description: "Trust orbitals and automatic fire for drone/satellite readability.",
     id: "drone-satellite",
-    label: "Drone/Satellite",
+    label: "Trust Orbitals",
     seed: "qa-orbitals-010",
     upgrades: [
       "halo-drone",
@@ -320,9 +320,9 @@ export const DEBUG_BUILD_PRESETS: DebugBuildPreset[] = [
     waveNumber: 10
   },
   {
-    description: "Final wave with a strong mixed build for boss readability.",
+    description: "Final wave with a strong mixed build for Algorithm readability.",
     id: "boss-test",
-    label: "Boss Test",
+    label: "Algorithm Test",
     seed: "qa-boss-013",
     upgrades: [
       "comet-bloom",
@@ -363,7 +363,7 @@ export const DEBUG_WAVE_PRESETS: DebugWavePreset[] = [
   },
   {
     id: "boss",
-    label: "Boss W13",
+    label: "Algorithm W13",
     waveNumber: 13
   }
 ];
@@ -590,10 +590,10 @@ export function getSessionSnapshot(session: GameSession): SessionSnapshot {
           phase: boss.phase,
           title:
             boss.mode === "exposed"
-              ? "OVERSEER // CORE OPEN"
+              ? "THE ALGORITHM // CORE OPEN"
               : boss.phase > 1
-                ? "OVERSEER // PHASE 2"
-                : "OVERSEER"
+                ? "THE ALGORITHM // PHASE 2"
+                : "THE ALGORITHM"
         }
       : null,
     bossPulses: session.bossPulses.map((pulse) => ({

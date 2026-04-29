@@ -101,7 +101,7 @@ export function createHud(
 
   const bossLabel = document.createElement("span");
   bossLabel.className = "boss-label";
-  bossLabel.textContent = "OVERSEER";
+  bossLabel.textContent = "THE ALGORITHM";
 
   const bossMode = document.createElement("span");
   bossMode.className = "boss-mode";
@@ -323,7 +323,7 @@ export function createHud(
       setClassName(stateMeta.value, `meta-value is-${snapshot.stateTone}`);
 
       setHidden(bossStrip, !snapshot.bossLabel);
-      setText(bossLabel, snapshot.bossLabel ?? "OVERSEER");
+      setText(bossLabel, snapshot.bossLabel ?? "THE ALGORITHM");
       setText(bossMode, snapshot.bossMode ?? "");
       setCssVariable(
         bossMeterFill,

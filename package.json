@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node scripts/smoke.mjs && tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {

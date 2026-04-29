@@ -1,5 +1,6 @@
 export type GameState =
   | "boot"
+  | "intro"
   | "title"
   | "playing"
   | "chapter-transition"
@@ -10,7 +11,8 @@ export type GameState =
 type Listener = (nextState: GameState, previousState: GameState) => void;
 
 const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
-  boot: ["title"],
+  boot: ["intro"],
+  intro: ["title"],
   title: ["playing"],
   playing: ["chapter-transition", "between-waves", "game-over", "victory"],
   "chapter-transition": ["playing"],
@@ -54,7 +56,7 @@ export class GameStateMachine {
 
     const previousState = this.currentState;
 
-    if (import.meta.env.DEV && !canTransition(previousState, nextState)) {
+    if (import.meta.env?.DEV && !canTransition(previousState, nextState)) {
       console.warn(
         `[stateMachine] unexpected transition ${previousState} -> ${nextState}`
       );

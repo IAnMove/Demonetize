@@ -147,21 +147,21 @@ function getBoostCardSkin(upgradeId: UpgradeId): BoostCardSkin {
         accent: "#ff648f",
         art: getActionCardArt(upgradeId),
         glow: "rgba(255, 91, 127, 0.34)",
-        glyph: "PURGE"
+        glyph: "APPEAL"
       };
     case "card-repair":
       return {
         accent: "#72ffd5",
         art: getActionCardArt(upgradeId),
         glow: "rgba(114, 255, 213, 0.32)",
-        glyph: "HEAL"
+        glyph: "TRUST"
       };
     case "card-overcore":
       return {
         accent: "#ffb84a",
         art: getActionCardArt(upgradeId),
         glow: "rgba(255, 184, 74, 0.34)",
-        glyph: "HULL"
+        glyph: "REVIEW"
       };
     case "arc-splitter":
       return damageSkin("ARC");
@@ -224,10 +224,10 @@ function getBoostCardSkin(upgradeId: UpgradeId): BoostCardSkin {
     case "magnet-sweep":
     case "recovery-matrix":
     case "signal-choir":
-      return supportSkin("ORB");
+      return supportSkin("TRUST");
     case "fortress-frame":
     case "phase-battery":
-      return supportSkin("HULL");
+      return supportSkin("SIGNAL");
     default:
       return supportSkin("CORE");
   }

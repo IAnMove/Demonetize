@@ -10,25 +10,25 @@ const STORAGE_KEY = "overseer.locale";
 
 const UI_TEXT = {
   en: {
-    "announce.artilleryImpact": "ARTILLERY IMPACT",
-    "announce.artilleryLock": "ARTILLERY LOCK",
-    "announce.bossCollapse": "OVERSEER COLLAPSE",
+    "announce.artilleryImpact": "MASS-REPORT IMPACT",
+    "announce.artilleryLock": "MASS-REPORT LOCK",
+    "announce.bossCollapse": "ALGORITHM COLLAPSE",
     "announce.bossCoreExposed": "CORE EXPOSED",
-    "announce.bossDefeated": "OVERSEER DOWN",
+    "announce.bossDefeated": "ALGORITHM DOWN",
     "announce.bossPulse": "PHASE PULSE",
     "announce.bossShift": "PHASE SHIFT",
-    "announce.bossSpawned": "OVERSEER BREACH",
+    "announce.bossSpawned": "ALGORITHM BREACH",
     "announce.comboSurge": "CHAIN x{count}",
     "announce.eliteBurst": "VOLATILE CORE",
-    "announce.eliteSpawned": "ELITE STRAIN",
-    "announce.gridPurge": "GRID PURGE",
-    "announce.legendaryReady": "LEGENDARY MODULE",
+    "announce.eliteSpawned": "VERIFIED STRIKE",
+    "announce.gridPurge": "DELETION SWEEP",
+    "announce.legendaryReady": "HUMAN REVIEW",
     "announce.recordBest": "NEW PERSONAL BEST",
-    "announce.rescueSpawned": "RESCUE SIGNAL",
-    "announce.rescueStreak": "EXTRACTION x{count}",
+    "announce.rescueSpawned": "CREATOR APPEAL",
+    "announce.rescueStreak": "RESTORATION x{count}",
     "announce.relayBoost": "SUPPORT PULSE",
     "announce.upgradeReady": "UPGRADE WINDOW",
-    "announce.victory": "ARENA SECURED",
+    "announce.victory": "FEED RESTORED",
     "announce.waveStart": "WAVE {wave} // {threat}",
     "boss.mode.charging": "Charging",
     "boss.mode.cooldown": "Cooldown",
@@ -41,32 +41,36 @@ const UI_TEXT = {
     "controls.dash": "Dash",
     "controls.fire": "Fire",
     "controls.move": "Move",
-    "chapter.continue": "Breach Sector",
+    "intro.copy":
+      "Year 2026. The Feed broke under the weight of manufactured voices: stolen scripts, cloned channels, faces without faces, machines begging machines for attention. So the Algorithm awakened to separate the real from the fake, and the purge began. But the blade learned only deletion. Now the spaces where people create, fail, learn, and become known are vanishing one by one. A few human signals still burn inside the blackout. Yours is one of them.",
+    "intro.eyebrow": "The Authenticity Purge",
+    "intro.skip": "Enter The Feed",
+    "chapter.continue": "Enter Hot Feed",
     "chapter.copy":
-    "The Overseer shell is down. Lock one legendary breach module before you dive into the hotter kill-grid.",
+      "The Algorithm shell is down. Lock one human-review proof before you dive into the hotter deletion grid.",
     "chapter.copyBonus":
-    "The Overseer shell is down. Rescue traffic unlocked an extra legendary pick before you dive into the hotter kill-grid.",
-    "chapter.eyebrow": "Chapter breach",
-    "chapter.moduleLabel": "Legendary breach modules",
-    "chapter.summary": "Chapter {chapter} online / Upgrades locked: {count}",
-    "chapter.summaryBonus": "Chapter {chapter} online / Upgrades locked: {count} / Rescue cache open",
-    "chapter.titleAccent": "Purge Grid",
-    "chapter.titleMain": "Sector {chapter}",
+      "The Algorithm shell is down. Restored creator traffic unlocked one extra human-review pick before you dive into the hotter deletion grid.",
+    "chapter.eyebrow": "Feed breach",
+    "chapter.moduleLabel": "Human-review proofs",
+    "chapter.summary": "Feed layer {chapter} online / Proofs locked: {count}",
+    "chapter.summaryBonus": "Feed layer {chapter} online / Proofs locked: {count} / Appeal cache open",
+    "chapter.titleAccent": "Deletion Grid",
+    "chapter.titleMain": "Layer {chapter}",
     "gameOver.copy":
-      "The arena is still hot. Re-enter immediately and keep the pressure on the rebel swarm.",
-    "gameOver.eyebrow": "Run failed",
-    "gameOver.hint": "Press R or click Restart. One input back into the arena.",
-    "gameOver.restart": "Restart",
-    "gameOver.titleAccent": "Lost",
-    "gameOver.titleMain": "Signal",
-    "rank.a": "Grid Hunter",
-    "rank.b": "Strike Node",
-    "rank.c": "Containment Unit",
-    "rank.d": "Cold Start",
-    "rank.s": "Overseer Breaker",
+      "The channel was terminated, but the appeal path is still open. Re-enter The Feed before the purge buries the signal.",
+    "gameOver.eyebrow": "Appeal denied",
+    "gameOver.hint": "Press R or click Appeal Again. One input back into The Feed.",
+    "gameOver.restart": "Appeal Again",
+    "gameOver.titleAccent": "Terminated",
+    "gameOver.titleMain": "Channel",
+    "rank.a": "Signal Hunter",
+    "rank.b": "Appeal Node",
+    "rank.c": "Quarantined Channel",
+    "rank.d": "Cold Upload",
+    "rank.s": "Algorithm Breaker",
     "hud.chain": "Chain",
     "hud.dash": "Dash",
-    "hud.hull": "Hull",
+    "hud.hull": "Signal",
     "hud.pb": "PB",
     "hud.pbAhead": "+{score}",
     "hud.pbBehind": "-{score}",
@@ -79,47 +83,47 @@ const UI_TEXT = {
     "hud.uptime": "Uptime",
     "hud.wave": "Wave",
     "locale.label": "Language",
-    "card.overcore.desc": "Drop on the arena to gain max hull and repair that amount.",
-    "card.overcore.notify": "Overcore plating installed.",
-    "card.overcore.title": "Overcore Plating",
-    "card.purge.desc": "Drop on the arena to clear non-boss enemies and damage boss armor.",
-    "card.purge.notify": "Purge protocol fired.",
-    "card.purge.title": "Purge Protocol",
-    "card.repair.desc": "Drop on the arena to restore a large chunk of hull.",
-    "card.repair.notify": "Field repair triggered.",
-    "card.repair.title": "Field Repair",
-    "notify.bossCollapse": "Arena collapse cascade triggered.",
-    "notify.artilleryImpact": "Impact zone detonated.",
-    "notify.artilleryLock": "Artillery strike painted on the floor.",
-    "notify.bossCoreExposed": "Overseer core exposed. Burn it down.",
-    "notify.bossDefeated": "OVERSEER core collapsed.",
-    "notify.bossPulse": "Phase pulse locked on the arena.",
-    "notify.bossShift": "Overseer entered phase two.",
-    "notify.bossSpawned": "OVERSEER breach detected.",
+    "card.overcore.desc": "Drop on The Feed to gain max signal and repair that amount.",
+    "card.overcore.notify": "Human review granted.",
+    "card.overcore.title": "Human Review",
+    "card.purge.desc": "Drop on The Feed to clear bot swarms and damage Algorithm armor.",
+    "card.purge.notify": "Mass appeal submitted.",
+    "card.purge.title": "Mass Appeal",
+    "card.repair.desc": "Drop on The Feed to restore a large chunk of signal.",
+    "card.repair.notify": "Community backing surged.",
+    "card.repair.title": "Community Backing",
+    "notify.bossCollapse": "Algorithm collapse cascade triggered.",
+    "notify.artilleryImpact": "Mass-report zone detonated.",
+    "notify.artilleryLock": "Mass-report sweep painted on the floor.",
+    "notify.bossCoreExposed": "Algorithm core exposed. Burn it down.",
+    "notify.bossDefeated": "ALGORITHM core collapsed.",
+    "notify.bossPulse": "Phase pulse locked on The Feed.",
+    "notify.bossShift": "The Algorithm entered phase two.",
+    "notify.bossSpawned": "ALGORITHM breach detected.",
     "notify.comboSurge": "Pressure spike x{count}",
     "notify.eliteBurst": "Volatile elite ruptured.",
     "notify.eliteKilled": "Elite escort collapsed.",
     "notify.eliteSpawned": "Elite escort materialized.",
-    "notify.gridPurge": "Kill-grid purge lane armed.",
-    "notify.legendaryReady": "Legendary breach module unlocked.",
-    "notify.pickupHeal": "+{amount} hull recovered",
-    "notify.playerDied": "Signal lost. Recycle the run.",
+    "notify.gridPurge": "Deletion sweep lane armed.",
+    "notify.legendaryReady": "Human-review proof unlocked.",
+    "notify.pickupHeal": "+{amount} signal recovered",
+    "notify.playerDied": "Channel terminated. Appeal the run.",
     "notify.recordBest": "Run record improved.",
-    "notify.rescueLost": "A rescued signal collapsed before extraction.",
-    "notify.rescueSaved": "Civilian signal extracted. +{amount} score.",
-    "notify.rescueSpawned": "Timed rescue signal released.",
-    "notify.rescueStreak": "Extraction streak x{count}. Combo pressure held.",
-    "notify.relayBoost": "Relay field energized hostile escorts.",
-    "notify.upgradeReady": "Upgrade window open.",
-    "notify.victory": "Arena secured.",
+    "notify.rescueLost": "A creator appeal expired before restoration.",
+    "notify.rescueSaved": "Creator channel restored. +{amount} score.",
+    "notify.rescueSpawned": "Timed creator appeal released.",
+    "notify.rescueStreak": "Restoration streak x{count}. Combo pressure held.",
+    "notify.relayBoost": "Bot amplification energized hostile escorts.",
+    "notify.upgradeReady": "Proof window open.",
+    "notify.victory": "The Feed restored.",
     "notify.waveStart": "Wave {wave} live: {threat}",
     "records.label": "Personal best",
     "records.lastRunLabel": "Last run",
     "records.lastRunLine":
       "{result} / Score {score} / Chain x{chain} / Rank {rank} / C{chapter}-W{wave}",
-    "records.lastRunEmpty": "No run logged yet. Break the grid.",
-    "records.lastRunFailed": "Signal lost",
-    "records.lastRunVictory": "Arena secured",
+    "records.lastRunEmpty": "No appeal logged yet. Break the purge.",
+    "records.lastRunFailed": "Channel terminated",
+    "records.lastRunVictory": "Feed restored",
     "records.line": "PB {score} / Chain x{chain} / Rank {rank} / Wins {wins}",
     "records.lineWithClear":
       "PB {score} / Chain x{chain} / Rank {rank} / Wins {wins} / Best clear {time}",
@@ -132,85 +136,87 @@ const UI_TEXT = {
     "summary.card.chain": "Chain",
     "summary.card.depth": "Depth",
     "summary.card.pace": "Pace",
-    "summary.card.rescue": "Rescue",
+    "summary.card.rescue": "Appeals",
     "summary.card.score": "Score",
     "summary.nextGoal": "Next target",
-    "state.artilleryImpact": "Impact zone",
-    "state.artilleryLock": "Artillery lock",
+    "state.artilleryImpact": "Report impact",
+    "state.artilleryLock": "Report lock",
     "state.edgeBurn": "Edge burn",
     "state.exposedCore": "Core exposed",
     "state.phasePulse": "Phase pulse",
     "state.phasePulseWarning": "Pulse lock",
-    "state.gridPurge": "Grid purge",
-    "state.relayBoost": "Support pulse",
+    "state.gridPurge": "Deletion sweep",
+    "state.relayBoost": "Bot amplification",
     "state.hostiles": "{count} hostiles",
     "state.overrun": "Overrun",
-    "state.purgeWarning": "Purge lock",
-    "tagline.loop": "Break the shell. Push deeper. One more run.",
+    "state.purgeWarning": "Deletion lock",
+    "tagline.loop": "Restore the real. Break the purge. One more appeal.",
+    "title.accent": "Authenticity Purge",
     "title.copy":
-      "Pilot TALON-7, the last breach rig still online. Break scout shells, survive sentry crossfire, and force the Overseer through phase collapse.",
-    "title.draftTag": "Draft // first module after wave 3 / legendary breach after sector boss",
-    "title.enemyTag": "Threat // scout shells / ram shells / sentry prisms / phase-shift overseer",
-    "title.eyebrow": "Neon siege protocol",
-    "title.hint": "Enter also starts. After failure, press R for instant retry.",
-    "title.playerTag": "Asset // TALON-7 breach rig",
-    "title.start": "Start Run",
+      "You are one surviving creator-signal inside The Feed. Outrun deletion sweeps, break bot amplification nodes, and rescue real channels before the Algorithm marks them inauthentic.",
+    "title.draftTag": "Appeals // first proof after wave 3 / human review after system boss",
+    "title.enemyTag": "Threat // cloned channels / strike hunters / claim scanners / The Algorithm",
+    "title.eyebrow": "Creator signal protocol",
+    "title.hint": "Enter also starts. After termination, press R for instant appeal.",
+    "title.main": "The Feed",
+    "title.playerTag": "Signal // authentic creator node",
+    "title.start": "Start Appeal",
     "upgrade.copy":
-      "The arena has a narrow opening. Lock one enhancement before the next assault arrives.",
+      "The Feed has a narrow opening. Lock one proof before the next deletion sweep arrives.",
     "upgrade.copyBonus":
-      "Rescue cache cracked open. Lock one enhancement before the next assault arrives, with one extra option online.",
-    "upgrade.eyebrow": "Wave cleared",
-    "upgrade.history.empty": "Wave {wave} cleared. No modules installed yet.",
-    "upgrade.history.installed": "Installed: {modules}",
+      "Appeal cache cracked open. Lock one proof before the next deletion sweep arrives, with one extra option online.",
+    "upgrade.eyebrow": "Sweep survived",
+    "upgrade.history.empty": "Wave {wave} cleared. No proofs installed yet.",
+    "upgrade.history.installed": "Proofs: {modules}",
     "upgrade.option": "Option {count}",
-    "upgrade.titleAccent": "Upgrade",
+    "upgrade.titleAccent": "Proof",
     "upgrade.titleMain": "Select",
     "victory.copy":
-      "The rogue director has been crushed for now. Reset the breach and see how much faster you can burn through it.",
-    "victory.eyebrow": "Run completed",
-    "victory.hint": "Press R for another run.",
-    "victory.restart": "Run Again",
-    "victory.summary": "Waves cleared: {wave} / Upgrades locked: {count}",
-    "victory.titleAccent": "Secured",
-    "victory.titleMain": "Arena",
+      "The Algorithm has been forced into human review. Reset the appeal and see how many more creators you can restore.",
+    "victory.eyebrow": "Appeal accepted",
+    "victory.hint": "Press R for another appeal.",
+    "victory.restart": "Appeal Again",
+    "victory.summary": "Sweeps survived: {wave} / Proofs locked: {count}",
+    "victory.titleAccent": "Restored",
+    "victory.titleMain": "Feed",
     "wave.advance": "Advance",
     "wave.cleared": "Cleared",
     "wave.deploying": "Deploying",
     "wave.finalPush": "Final Push",
     "wave.sweep": "Sweep",
-    "wave.theme.containment-crash": "Containment Crash",
-    "wave.theme.codex-requiem": "Codex Requiem",
-    "wave.theme.fracture-line": "Fracture Line",
-    "wave.theme.heat-spiral": "Heat Spiral",
-    "wave.theme.kill-grid": "Kill-Grid",
-    "wave.theme.last-directive": "Last Directive",
-    "wave.theme.overseer-breach": "Overseer Breach",
-    "wave.theme.purge-clamp": "Purge Clamp",
-    "wave.theme.ram-drill": "Ram Drill",
+    "wave.theme.containment-crash": "Quarantine Crash",
+    "wave.theme.codex-requiem": "Archive Requiem",
+    "wave.theme.fracture-line": "Claim Fracture",
+    "wave.theme.heat-spiral": "Attention Spiral",
+    "wave.theme.kill-grid": "Deletion Grid",
+    "wave.theme.last-directive": "Final Policy",
+    "wave.theme.overseer-breach": "Algorithm Breach",
+    "wave.theme.purge-clamp": "Takedown Clamp",
+    "wave.theme.ram-drill": "Strike Raid",
     "wave.theme.signal-sweep": "Signal Sweep",
-    "wave.theme.token-drought": "Token Drought",
-    "wave.upgrade": "Upgrade"
+    "wave.theme.token-drought": "Trust Drought",
+    "wave.upgrade": "Proof"
   },
   es: {
-    "announce.artilleryImpact": "IMPACTO DE ARTILLERIA",
-    "announce.artilleryLock": "FIJACION DE ARTILLERIA",
-    "announce.bossCollapse": "COLAPSO OVERSEER",
+    "announce.artilleryImpact": "IMPACTO DE REPORTES",
+    "announce.artilleryLock": "FIJACION DE REPORTES",
+    "announce.bossCollapse": "COLAPSO DEL ALGORITMO",
     "announce.bossCoreExposed": "NUCLEO EXPUESTO",
-    "announce.bossDefeated": "OVERSEER CAIDO",
+    "announce.bossDefeated": "ALGORITMO CAIDO",
     "announce.bossPulse": "PULSO DE FASE",
     "announce.bossShift": "CAMBIO DE FASE",
-    "announce.bossSpawned": "BRECHA OVERSEER",
+    "announce.bossSpawned": "BRECHA DEL ALGORITMO",
     "announce.comboSurge": "CADENA x{count}",
     "announce.eliteBurst": "NUCLEO VOLATIL",
-    "announce.eliteSpawned": "CEPA ELITE",
-    "announce.gridPurge": "PURGA DE REJILLA",
-    "announce.legendaryReady": "MODULO LEGENDARIO",
+    "announce.eliteSpawned": "STRIKE VERIFICADO",
+    "announce.gridPurge": "BARRIDO DE BORRADO",
+    "announce.legendaryReady": "REVISION HUMANA",
     "announce.recordBest": "NUEVO RECORD PERSONAL",
-    "announce.rescueSpawned": "SENAL DE RESCATE",
-    "announce.rescueStreak": "EXTRACCION x{count}",
+    "announce.rescueSpawned": "APELACION DE CREADOR",
+    "announce.rescueStreak": "RESTAURACION x{count}",
     "announce.relayBoost": "PULSO DE SOPORTE",
     "announce.upgradeReady": "VENTANA DE MEJORA",
-    "announce.victory": "ARENA ASEGURADA",
+    "announce.victory": "FEED RESTAURADO",
     "announce.waveStart": "OLEADA {wave} // {threat}",
     "boss.mode.charging": "Cargando",
     "boss.mode.cooldown": "Recarga",
@@ -223,32 +229,36 @@ const UI_TEXT = {
     "controls.dash": "Dash",
     "controls.fire": "Disparo",
     "controls.move": "Mover",
-    "chapter.continue": "Abrir Sector",
+    "intro.copy":
+      "Ano 2026. The Feed se rompio bajo el peso de voces fabricadas: guiones robados, canales clonados, rostros sin rostro, maquinas suplicando atencion a otras maquinas. Entonces el Algoritmo desperto para separar lo real de lo falso, y empezo la purga. Pero la cuchilla solo aprendio a borrar. Ahora los espacios donde la gente crea, falla, aprende y llega a ser conocida desaparecen uno a uno. Unas pocas senales humanas aun arden en el apagon. La tuya es una de ellas.",
+    "intro.eyebrow": "La Purga de Autenticidad",
+    "intro.skip": "Entrar en The Feed",
+    "chapter.continue": "Entrar al Feed Caliente",
     "chapter.copy":
-    "La carcasa del Overseer ha caido. Fija un modulo legendario de brecha antes de lanzarte a la rejilla de purga mas feroz.",
+      "La carcasa del Algoritmo ha caido. Fija una prueba de revision humana antes de lanzarte a la rejilla de borrado mas feroz.",
     "chapter.copyBonus":
-    "La carcasa del Overseer ha caido. El trafico rescatado ha abierto una opcion legendaria extra antes de lanzarte a la rejilla de purga mas feroz.",
-    "chapter.eyebrow": "Brecha de capitulo",
-    "chapter.moduleLabel": "Modulos legendarios de brecha",
-    "chapter.summary": "Capitulo {chapter} activo / Mejoras fijadas: {count}",
-    "chapter.summaryBonus": "Capitulo {chapter} activo / Mejoras fijadas: {count} / Cache de rescate abierta",
-    "chapter.titleAccent": "Rejilla de Purga",
-    "chapter.titleMain": "Sector {chapter}",
+      "La carcasa del Algoritmo ha caido. El trafico de creadores restaurados ha abierto una prueba extra antes de lanzarte a la rejilla de borrado mas feroz.",
+    "chapter.eyebrow": "Brecha del feed",
+    "chapter.moduleLabel": "Pruebas de revision humana",
+    "chapter.summary": "Capa {chapter} activa / Pruebas fijadas: {count}",
+    "chapter.summaryBonus": "Capa {chapter} activa / Pruebas fijadas: {count} / Cache de apelaciones abierta",
+    "chapter.titleAccent": "Rejilla de Borrado",
+    "chapter.titleMain": "Capa {chapter}",
     "gameOver.copy":
-      "La arena sigue al rojo vivo. Entra otra vez al instante y manten la presion sobre la IA rebelde.",
-    "gameOver.eyebrow": "Incursion fallida",
-    "gameOver.hint": "Pulsa R o haz clic en Reiniciar. Un input y vuelves a la arena.",
-    "gameOver.restart": "Reiniciar",
-    "gameOver.titleAccent": "Perdida",
-    "gameOver.titleMain": "Senal",
-    "rank.a": "Cazador de Rejilla",
-    "rank.b": "Nodo de Ataque",
-    "rank.c": "Unidad de Contencion",
-    "rank.d": "Arranque Frio",
-    "rank.s": "Rompe Overseers",
+      "El canal fue terminado, pero la apelacion sigue abierta. Vuelve a The Feed antes de que la purga entierre la senal.",
+    "gameOver.eyebrow": "Apelacion rechazada",
+    "gameOver.hint": "Pulsa R o haz clic en Apelar otra vez. Un input y vuelves a The Feed.",
+    "gameOver.restart": "Apelar otra vez",
+    "gameOver.titleAccent": "Terminado",
+    "gameOver.titleMain": "Canal",
+    "rank.a": "Cazador de Senales",
+    "rank.b": "Nodo de Apelacion",
+    "rank.c": "Canal en Cuarentena",
+    "rank.d": "Upload Frio",
+    "rank.s": "Rompe Algoritmos",
     "hud.chain": "Cadena",
     "hud.dash": "Dash",
-    "hud.hull": "Casco",
+    "hud.hull": "Senal",
     "hud.pb": "PB",
     "hud.pbAhead": "+{score}",
     "hud.pbBehind": "-{score}",
@@ -261,47 +271,47 @@ const UI_TEXT = {
     "hud.uptime": "Tiempo",
     "hud.wave": "Oleada",
     "locale.label": "Idioma",
-    "card.overcore.desc": "Suelta en la arena para ganar casco maximo y reparar esa cantidad.",
-    "card.overcore.notify": "Blindaje overcore instalado.",
-    "card.overcore.title": "Blindaje Overcore",
-    "card.purge.desc": "Suelta en la arena para limpiar enemigos sin jefe y danar armadura de jefe.",
-    "card.purge.notify": "Protocolo de purga disparado.",
-    "card.purge.title": "Protocolo de Purga",
-    "card.repair.desc": "Suelta en la arena para recuperar una gran parte del casco.",
-    "card.repair.notify": "Reparacion de campo activada.",
-    "card.repair.title": "Reparacion de Campo",
-    "notify.artilleryImpact": "La zona de impacto ha detonado.",
-    "notify.artilleryLock": "La artilleria ha pintado una zona en la arena.",
-    "notify.bossCollapse": "Se ha activado una cascada de colapso en la arena.",
-    "notify.bossCoreExposed": "El nucleo del Overseer esta expuesto. Revientalo.",
-    "notify.bossDefeated": "El nucleo del OVERSEER ha colapsado.",
-    "notify.bossPulse": "El pulso de fase ha fijado la arena.",
-    "notify.bossShift": "El Overseer ha entrado en fase dos.",
-    "notify.bossSpawned": "Brecha detectada: OVERSEER.",
+    "card.overcore.desc": "Suelta en The Feed para ganar senal maxima y reparar esa cantidad.",
+    "card.overcore.notify": "Revision humana concedida.",
+    "card.overcore.title": "Revision Humana",
+    "card.purge.desc": "Suelta en The Feed para limpiar enjambres bot y danar armadura del Algoritmo.",
+    "card.purge.notify": "Apelacion masiva enviada.",
+    "card.purge.title": "Apelacion Masiva",
+    "card.repair.desc": "Suelta en The Feed para recuperar una gran parte de senal.",
+    "card.repair.notify": "Apoyo de comunidad activado.",
+    "card.repair.title": "Apoyo de Comunidad",
+    "notify.artilleryImpact": "La zona de reportes ha detonado.",
+    "notify.artilleryLock": "El barrido de reportes ha pintado una zona en el suelo.",
+    "notify.bossCollapse": "Se ha activado una cascada de colapso del Algoritmo.",
+    "notify.bossCoreExposed": "El nucleo del Algoritmo esta expuesto. Revientalo.",
+    "notify.bossDefeated": "El nucleo del ALGORITMO ha colapsado.",
+    "notify.bossPulse": "El pulso de fase ha fijado The Feed.",
+    "notify.bossShift": "El Algoritmo ha entrado en fase dos.",
+    "notify.bossSpawned": "Brecha detectada: ALGORITMO.",
     "notify.comboSurge": "Pico de presion x{count}",
     "notify.eliteBurst": "Una elite volatil ha reventado.",
     "notify.eliteKilled": "La escolta elite ha colapsado.",
     "notify.eliteSpawned": "Se ha materializado una escolta elite.",
-    "notify.gridPurge": "Carril de purga armado.",
-    "notify.legendaryReady": "Modulo legendario de brecha desbloqueado.",
-    "notify.pickupHeal": "+{amount} de casco recuperado",
-    "notify.playerDied": "Senal perdida. Recicla la incursion.",
+    "notify.gridPurge": "Carril de borrado armado.",
+    "notify.legendaryReady": "Prueba de revision humana desbloqueada.",
+    "notify.pickupHeal": "+{amount} de senal recuperada",
+    "notify.playerDied": "Canal terminado. Apela la run.",
     "notify.recordBest": "Has mejorado tu marca.",
-    "notify.rescueLost": "Una senal rescatable colapso antes de la extraccion.",
-    "notify.rescueSaved": "Senal civil extraida. +{amount} puntos.",
-    "notify.rescueSpawned": "Senal de rescate temporal liberada.",
-    "notify.rescueStreak": "Racha de extraccion x{count}. La presion del combo sigue viva.",
-    "notify.relayBoost": "El relay ha energizado a la escolta hostil.",
-    "notify.upgradeReady": "Ventana de mejora abierta.",
-    "notify.victory": "Arena asegurada.",
+    "notify.rescueLost": "Una apelacion de creador expiro antes de restaurarse.",
+    "notify.rescueSaved": "Canal de creador restaurado. +{amount} puntos.",
+    "notify.rescueSpawned": "Apelacion temporal de creador liberada.",
+    "notify.rescueStreak": "Racha de restauracion x{count}. La presion del combo sigue viva.",
+    "notify.relayBoost": "La amplificacion bot ha energizado a la escolta hostil.",
+    "notify.upgradeReady": "Ventana de prueba abierta.",
+    "notify.victory": "The Feed restaurado.",
     "notify.waveStart": "Oleada {wave} activa: {threat}",
     "records.label": "Mejores marcas",
     "records.lastRunLabel": "Ultima run",
     "records.lastRunLine":
       "{result} / Puntos {score} / Cadena x{chain} / Rango {rank} / C{chapter}-O{wave}",
-    "records.lastRunEmpty": "Aun no hay run registrada. Rompe la rejilla.",
-    "records.lastRunFailed": "Senal perdida",
-    "records.lastRunVictory": "Arena asegurada",
+    "records.lastRunEmpty": "Aun no hay apelacion registrada. Rompe la purga.",
+    "records.lastRunFailed": "Canal terminado",
+    "records.lastRunVictory": "Feed restaurado",
     "records.line": "PB {score} / Cadena x{chain} / Rango {rank} / Victorias {wins}",
     "records.lineWithClear":
       "PB {score} / Cadena x{chain} / Rango {rank} / Victorias {wins} / Mejor clear {time}",
@@ -314,64 +324,66 @@ const UI_TEXT = {
     "summary.card.chain": "Cadena",
     "summary.card.depth": "Profundidad",
     "summary.card.pace": "Ritmo",
-    "summary.card.rescue": "Rescates",
+    "summary.card.rescue": "Apelaciones",
     "summary.card.score": "Puntos",
     "summary.nextGoal": "Siguiente objetivo",
-    "state.artilleryImpact": "Zona de impacto",
-    "state.artilleryLock": "Fijacion de artilleria",
+    "state.artilleryImpact": "Impacto de reportes",
+    "state.artilleryLock": "Fijacion de reportes",
     "state.edgeBurn": "Borde en llamas",
     "state.exposedCore": "Nucleo expuesto",
     "state.phasePulse": "Pulso de fase",
     "state.phasePulseWarning": "Fijacion de pulso",
-    "state.gridPurge": "Purga de rejilla",
-    "state.relayBoost": "Pulso de soporte",
+    "state.gridPurge": "Barrido de borrado",
+    "state.relayBoost": "Amplificacion bot",
     "state.hostiles": "{count} hostiles",
     "state.overrun": "Desbordado",
-    "state.purgeWarning": "Bloqueo de purga",
-    "tagline.loop": "Rompe la carcasa. Baja mas hondo. Una run mas.",
+    "state.purgeWarning": "Bloqueo de borrado",
+    "tagline.loop": "Restaura lo real. Rompe la purga. Una apelacion mas.",
+    "title.accent": "Purga de Autenticidad",
     "title.copy":
-      "Pilotas TALON-7, la ultima plataforma de brecha aun operativa. Revienta rastreadores, sobrevive al fuego cruzado de los sentries y fuerza al Overseer a colapsar de fase.",
-    "title.draftTag": "Draft // primer modulo tras oleada 3 / legendaria tras jefe de sector",
-    "title.enemyTag": "Amenaza // rastreadores / arietes / sentries prisma / overseer en cambio de fase",
-    "title.eyebrow": "Protocolo de asedio neon",
-    "title.hint": "Enter tambien empieza. Tras caer, pulsa R para reintentar al instante.",
-    "title.playerTag": "Activo // plataforma de brecha TALON-7",
-    "title.start": "Empezar",
+      "Eres una senal de creador autentico dentro de The Feed. Esquiva barridos de borrado, rompe nodos de amplificacion bot y rescata canales reales antes de que el Algoritmo los marque como inautenticos.",
+    "title.draftTag": "Apelaciones // primera prueba tras oleada 3 / revision humana tras jefe de sistema",
+    "title.enemyTag": "Amenaza // canales clonados / cazadores de strikes / scanners de claims / el Algoritmo",
+    "title.eyebrow": "Protocolo de senal creadora",
+    "title.hint": "Enter tambien empieza. Tras la terminacion, pulsa R para apelar al instante.",
+    "title.main": "The Feed",
+    "title.playerTag": "Senal // nodo de creador autentico",
+    "title.start": "Iniciar apelacion",
     "upgrade.copy":
-      "La arena abre una ventana minima. Fija una mejora antes de la siguiente oleada.",
+      "The Feed abre una ventana minima. Fija una prueba antes del siguiente barrido de borrado.",
     "upgrade.copyBonus":
-      "La cache de rescate se ha abierto. Fija una mejora antes de la siguiente oleada, con una opcion extra activa.",
-    "upgrade.eyebrow": "Oleada despejada",
-    "upgrade.history.empty": "Oleada {wave} despejada. Aun no hay modulos instalados.",
-    "upgrade.history.installed": "Instaladas: {modules}",
+      "La cache de apelaciones se ha abierto. Fija una prueba antes del siguiente barrido de borrado, con una opcion extra activa.",
+    "upgrade.eyebrow": "Barrido sobrevivido",
+    "upgrade.history.empty": "Oleada {wave} despejada. Aun no hay pruebas instaladas.",
+    "upgrade.history.installed": "Pruebas: {modules}",
     "upgrade.option": "Opcion {count}",
-    "upgrade.titleAccent": "Mejora",
+    "upgrade.titleAccent": "Prueba",
     "upgrade.titleMain": "Elige",
     "victory.copy":
-      "El director rebelde ha sido aplastado por ahora. Reinicia la brecha e intenta quemar la run todavia mas rapido.",
-    "victory.eyebrow": "Incursion completada",
-    "victory.hint": "Pulsa R para otra incursion.",
-    "victory.restart": "Otra incursion",
-    "victory.summary": "Oleadas superadas: {wave} / Mejoras fijadas: {count}",
-    "victory.titleAccent": "Asegurada",
-    "victory.titleMain": "Arena",
+      "El Algoritmo ha sido forzado a revision humana. Reinicia la apelacion y comprueba cuantos creadores mas puedes restaurar.",
+    "victory.eyebrow": "Apelacion aceptada",
+    "victory.hint": "Pulsa R para otra apelacion.",
+    "victory.restart": "Apelar otra vez",
+    "victory.summary": "Barridos sobrevividos: {wave} / Pruebas fijadas: {count}",
+    "victory.titleAccent": "Restaurado",
+    "victory.titleMain": "Feed",
     "wave.advance": "Avance",
     "wave.cleared": "Despejada",
     "wave.deploying": "Despliegue",
     "wave.finalPush": "Empuje final",
     "wave.sweep": "Barrido",
-    "wave.theme.containment-crash": "Choque de Contencion",
-    "wave.theme.codex-requiem": "Requiem Codex",
-    "wave.theme.fracture-line": "Linea de Fractura",
-    "wave.theme.heat-spiral": "Espiral Termica",
-    "wave.theme.kill-grid": "Rejilla de Muerte",
-    "wave.theme.last-directive": "Ultima Directiva",
-    "wave.theme.overseer-breach": "Brecha Overseer",
-    "wave.theme.purge-clamp": "Tenaza de Purga",
-    "wave.theme.ram-drill": "Taladro de Arietes",
+    "wave.theme.containment-crash": "Choque de Cuarentena",
+    "wave.theme.codex-requiem": "Requiem de Archivo",
+    "wave.theme.fracture-line": "Fractura de Claim",
+    "wave.theme.heat-spiral": "Espiral de Atencion",
+    "wave.theme.kill-grid": "Red de Borrado",
+    "wave.theme.last-directive": "Politica Final",
+    "wave.theme.overseer-breach": "Brecha del Algoritmo",
+    "wave.theme.purge-clamp": "Tenaza de Takedown",
+    "wave.theme.ram-drill": "Redada de Strikes",
     "wave.theme.signal-sweep": "Barrido de Senal",
-    "wave.theme.token-drought": "Sequia de Tokens",
-    "wave.upgrade": "Mejora"
+    "wave.theme.token-drought": "Sequia de Confianza",
+    "wave.upgrade": "Prueba"
   }
 } as const;
 
@@ -382,71 +394,71 @@ const UPGRADE_TEXT: Record<
   "afterburn-link": {
     en: {
       description: "Dash returns much sooner.",
-      title: "Afterburn Link"
+      title: "Appeal Accelerator"
     },
     es: {
       description: "El dash vuelve mucho antes.",
-      title: "Enlace de Postcombustion"
+      title: "Acelerador de Apelacion"
     }
   },
   "arc-splitter": {
     en: {
       description: "Projectiles chain lightning to a nearby enemy.",
-      title: "Arc Splitter"
+      title: "Signal Fork"
     },
     es: {
       description: "Los proyectiles encadenan un rayo a un enemigo cercano.",
-      title: "Divisor de Arco"
+      title: "Bifurcador de Senal"
     }
   },
   "halo-drone": {
     en: {
-      description: "One orbital drone fires automatically.",
-      title: "Halo Drone"
+      description: "One watchdog drone fires automatically.",
+      title: "Watchdog Drone"
     },
     es: {
-      description: "Un dron orbital dispara automaticamente.",
-      title: "Dron Halo"
+      description: "Un dron guardian dispara automaticamente.",
+      title: "Dron Guardian"
     }
   },
   "ricochet-core": {
     en: {
-      description: "Projectiles bounce once off the arena edge.",
-      title: "Ricochet Core"
+      description: "Projectiles bounce once off the feed edge.",
+      title: "Mirror Claim"
     },
     es: {
-      description: "Los proyectiles rebotan una vez en el borde de la arena.",
-      title: "Nucleo Ricochet"
+      description: "Los proyectiles rebotan una vez en el borde del feed.",
+      title: "Claim Espejo"
     }
   },
   "starburst-rounds": {
     en: {
       description: "Kills release a small radial burst.",
-      title: "Starburst Rounds"
+      title: "Viral Burst"
     },
     es: {
       description: "Las bajas liberan una pequena rafaga radial.",
-      title: "Municion Estelar"
+      title: "Rafaga Viral"
     }
   },
   "rail-pierce": {
     en: {
       description: "Projectiles pierce the first enemy hit.",
-      title: "Rail Pierce"
+      title: "Takedown Pierce"
     },
     es: {
       description: "Los proyectiles perforan al primer enemigo alcanzado.",
-      title: "Perforador Rail"
+      title: "Perforador de Takedown"
     }
   },
   "nova-dash": {
     en: {
       description: "Dash creates an explosion at the end point.",
-      title: "Nova Dash"
+      title: "Callback Nova"
     },
     es: {
       description: "El dash crea una explosion en el punto final.",
-      title: "Dash Nova"
+      title: "Nova de Callback"
     }
   },
   "afterimage-trail": {
@@ -462,311 +474,311 @@ const UPGRADE_TEXT: Record<
   "gravity-well": {
     en: {
       description: "Pickups create a brief enemy-pull field.",
-      title: "Gravity Well"
+      title: "Attention Well"
     },
     es: {
       description: "Los pickups crean un campo breve que atrae enemigos.",
-      title: "Pozo Gravitatorio"
+      title: "Pozo de Atencion"
     }
   },
   "breach-pulse": {
     en: {
       description: "Dash emits a shock pulse.",
-      title: "Breach Pulse"
+      title: "Appeal Pulse"
     },
     es: {
       description: "El dash emite una onda de choque.",
-      title: "Pulso de Brecha"
+      title: "Pulso de Apelacion"
     }
   },
   "burn-drive": {
     en: {
       description: "Movement speed increases.",
-      title: "Burn Drive"
+      title: "Creator Drive"
     },
     es: {
       description: "Aumenta la velocidad de movimiento.",
-      title: "Motor de Combustion"
+      title: "Motor de Creador"
     }
   },
   "card-purge": {
     en: {
-      description: "Stores a one-use purge card in your hand.",
-      title: "Purge Protocol"
+      description: "Stores a one-use mass appeal card in your hand.",
+      title: "Mass Appeal"
     },
     es: {
-      description: "Guarda una carta de purga de un solo uso en tu mano.",
-      title: "Protocolo de Purga"
+      description: "Guarda una carta de apelacion masiva de un solo uso en tu mano.",
+      title: "Apelacion Masiva"
     }
   },
   "card-repair": {
     en: {
-      description: "Stores a one-use repair card in your hand.",
-      title: "Field Repair"
+      description: "Stores a one-use community backing card in your hand.",
+      title: "Community Backing"
     },
     es: {
-      description: "Guarda una carta de reparacion de un solo uso en tu mano.",
-      title: "Reparacion de Campo"
+      description: "Guarda una carta de apoyo de comunidad de un solo uso en tu mano.",
+      title: "Apoyo de Comunidad"
     }
   },
   "card-overcore": {
     en: {
-      description: "Stores a one-use max hull card in your hand.",
-      title: "Overcore Plating"
+      description: "Stores a one-use human review card in your hand.",
+      title: "Human Review"
     },
     es: {
-      description: "Guarda una carta de casco maximo de un solo uso en tu mano.",
-      title: "Blindaje Overcore"
+      description: "Guarda una carta de revision humana de un solo uso en tu mano.",
+      title: "Revision Humana"
     }
   },
   "chatgpt-router": {
     en: {
       description: "Adds a routed firing lane.",
-      title: "ChatGPT Router"
+      title: "Script Router"
     },
     es: {
       description: "Anade una via de disparo guiada.",
-      title: "Router ChatGPT"
+      title: "Router de Guion"
     }
   },
   "claude-lattice": {
     en: {
-      description: "Orbs repair more hull.",
-      title: "Claude Lattice"
+      description: "Trust fragments repair more signal.",
+      title: "Trust Lattice"
     },
     es: {
-      description: "Los orbes reparan mas casco.",
-      title: "Reticula Claude"
+      description: "Los fragmentos de confianza reparan mas senal.",
+      title: "Reticula de Confianza"
     }
   },
   "coil-rifling": {
     en: {
       description: "Tightens the shot coil for harder rounds.",
-      title: "Coil Rifling"
+      title: "Proof Rifling"
     },
     es: {
       description: "Aprieta el disparo para que pegue mas.",
-      title: "Estriado de Bobina"
+      title: "Estriado de Prueba"
     }
   },
   "codex-overclock": {
     en: {
       description: "Primary fire goes feral-fast.",
-      title: "Codex Overclock"
+      title: "Upload Overclock"
     },
     es: {
       description: "El disparo principal se acelera una barbaridad.",
-      title: "Overclock Codex"
+      title: "Overclock de Upload"
     }
   },
   "dash-capacitors": {
     en: {
       description: "Dash comes back sooner.",
-      title: "Dash Capacitors"
+      title: "Appeal Capacitors"
     },
     es: {
       description: "El dash vuelve antes.",
-      title: "Capacitores de Dash"
+      title: "Capacitores de Apelacion"
     }
   },
   "echo-web": {
     en: {
       description: "Adds one more firing lane.",
-      title: "Echo Web"
+      title: "Mirror Web"
     },
     es: {
       description: "Anade otra calle de disparo.",
-      title: "Red de Eco"
+      title: "Red Espejo"
     }
   },
   "eclipse-protocol": {
     en: {
       description: "Legendary lattice: adds two wide firing lanes.",
-      title: "Eclipse Protocol"
+      title: "Blackout Protocol"
     },
     es: {
       description: "Reticula legendaria: anade dos vias de disparo amplias.",
-      title: "Protocolo Eclipse"
+      title: "Protocolo Apagon"
     }
   },
   "satellite-lattice": {
     en: {
       description: "Legendary lattice: two satellites fire in a cross pattern.",
-      title: "Satellite Lattice"
+      title: "Subscriber Satellites"
     },
     es: {
       description: "Reticula legendaria: dos satelites disparan en cruz.",
-      title: "Reticula Satelite"
+      title: "Satelites de Suscriptores"
     }
   },
   "comet-bloom": {
     en: {
       description: "Legendary artillery: periodic shots launch a large explosive projectile.",
-      title: "Comet Bloom"
+      title: "Viral Comet"
     },
     es: {
       description: "Artilleria legendaria: disparos periodicos lanzan un proyectil explosivo grande.",
-      title: "Floracion Cometa"
+      title: "Cometa Viral"
     }
   },
   "ion-repeaters": {
     en: {
       description: "Primary fire cycles faster.",
-      title: "Ion Repeaters"
+      title: "Upload Repeaters"
     },
     es: {
       description: "El disparo principal cicla mas rapido.",
-      title: "Repetidores de Iones"
+      title: "Repetidores de Upload"
     }
   },
   "magnet-sweep": {
     en: {
-      description: "Orbs collect from farther away.",
-      title: "Magnet Sweep"
+      description: "Trust fragments collect from farther away.",
+      title: "Community Magnet"
     },
     es: {
-      description: "Los orbes se atraen desde mas lejos.",
-      title: "Barrido Magnetico"
+      description: "Los fragmentos de confianza se atraen desde mas lejos.",
+      title: "Iman de Comunidad"
     }
   },
   "overcharge-rounds": {
     en: {
       description: "Projectiles hit harder.",
-      title: "Overcharge Rounds"
+      title: "Overclaim Rounds"
     },
     es: {
       description: "Los proyectiles golpean mas fuerte.",
-      title: "Municion Sobrecargada"
+      title: "Municion de Overclaim"
     }
   },
   "overseer-lens": {
     en: {
       description: "Legendary optics: projectiles hit harder.",
-      title: "Overseer Lens"
+      title: "Algorithm Lens"
     },
     es: {
       description: "Optica legendaria: los proyectiles pegan mas.",
-      title: "Lente Overseer"
+      title: "Lente del Algoritmo"
     }
   },
   "phase-battery": {
     en: {
-      description: "Increase max hull.",
-      title: "Phase Battery"
+      description: "Increase max signal.",
+      title: "Signal Battery"
     },
     es: {
-      description: "Aumenta el casco maximo.",
-      title: "Bateria de Fase"
+      description: "Aumenta la senal maxima.",
+      title: "Bateria de Senal"
     }
   },
   "prism-loader": {
     en: {
       description: "Adds another lane to the volley.",
-      title: "Prism Loader"
+      title: "Thumbnail Prism"
     },
     es: {
       description: "Anade otra linea a la rafaga.",
-      title: "Cargador Prisma"
+      title: "Prisma de Miniatura"
     }
   },
   "recovery-matrix": {
     en: {
-      description: "Patch hull immediately.",
-      title: "Recovery Matrix"
+      description: "Patch signal immediately.",
+      title: "Recovery Appeal"
     },
     es: {
-      description: "Recupera casco al instante.",
-      title: "Matriz de Recuperacion"
+      description: "Recupera senal al instante.",
+      title: "Apelacion de Recuperacion"
     }
   },
   "signal-choir": {
     en: {
-      description: "Legendary rescue lattice: rescues release more orbs.",
+      description: "Legendary appeal lattice: restored creators release more trust fragments.",
       title: "Signal Choir"
     },
     es: {
-      description: "Reticula legendaria de rescate: los rescates sueltan mas orbes.",
+      description: "Reticula legendaria de apelacion: los creadores restaurados sueltan mas fragmentos de confianza.",
       title: "Coro de Senales"
     }
   },
   "siege-gyros": {
     en: {
       description: "Shots hit harder.",
-      title: "Siege Gyros"
+      title: "Strike Gyros"
     },
     es: {
       description: "Los disparos pegan mas.",
-      title: "Giros de Asedio"
+      title: "Giros de Strike"
     }
   },
   "shock-greaves": {
     en: {
       description: "Dash becomes dangerous on impact.",
-      title: "Shock Greaves"
+      title: "Strike Greaves"
     },
     es: {
       description: "El dash se vuelve peligroso al impactar.",
-      title: "Grebas de Choque"
+      title: "Grebas de Strike"
     }
   },
   "split-lattice": {
     en: {
       description: "Primary fire fans into a wider multi-shot spread.",
-      title: "Split Lattice"
+      title: "Split Signal"
     },
     es: {
       description: "El disparo principal se abre en una rafaga multiple mas amplia.",
-      title: "Reticula Segmentada"
+      title: "Senal Segmentada"
     }
   },
   "zero-point-capacitor": {
     en: {
       description: "Legendary core: dash releases a heavier pulse.",
-      title: "Zero-Point Capacitor"
+      title: "Zero-Point Review"
     },
     es: {
       description: "Nucleo legendario: el dash libera un pulso mas pesado.",
-      title: "Capacitor de Punto Cero"
+      title: "Revision de Punto Cero"
     }
   },
   "glass-reactor": {
     en: {
       description: "Massive projectile damage.",
-      title: "Glass Reactor"
+      title: "Glass Channel"
     },
     es: {
       description: "Mucho mas dano por proyectil.",
-      title: "Reactor de Cristal"
+      title: "Canal de Cristal"
     }
   },
   "fortress-frame": {
     en: {
-      description: "Gain heavy max hull.",
-      title: "Fortress Frame"
+      description: "Gain heavy max signal.",
+      title: "Archive Frame"
     },
     es: {
-      description: "Ganas mucho casco maximo.",
-      title: "Chasis Fortaleza"
+      description: "Ganas mucha senal maxima.",
+      title: "Chasis de Archivo"
     }
   },
   "heat-sink-bypass": {
     en: {
       description: "Primary fire accelerates.",
-      title: "Heat Sink Bypass"
+      title: "Cooldown Bypass"
     },
     es: {
       description: "El disparo acelera.",
-      title: "Bypass de Disipacion"
+      title: "Bypass de Cooldown"
     }
   },
   "vector-thrusters": {
     en: {
       description: "Dash speed increases.",
-      title: "Vector Thrusters"
+      title: "Appeal Thrusters"
     },
     es: {
       description: "Aumenta la velocidad de dash.",
-      title: "Propulsores Vectoriales"
+      title: "Propulsores de Apelacion"
     }
   }
 };

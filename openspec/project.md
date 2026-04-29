@@ -1,10 +1,10 @@
 # Project Context
 
 ## Name
-OVERSEER: Neon Siege
+The Feed: Authenticity Purge
 
 ## Product Goal
-Ship a web-first neon PvE action game for a game jam.
+Ship a web-first creator-purge PvE action game for a game jam.
 The game must be instantly understandable, fast to load, and fun in under 10 seconds.
 
 ## Gameplay Pillars
@@ -15,7 +15,7 @@ The game must be instantly understandable, fast to load, and fun in under 10 sec
 
 ## MVP Scope
 - Single-player only
-- One arena
+- One feed-grid arena
 - One full run loop
 - 2-3 enemy archetypes
 - 3 player upgrades

@@ -160,9 +160,22 @@ export function createApp(rootElement: HTMLDivElement): void {
     stateMachine.transition("playing");
   };
 
+  const skipIntro = (): void => {
+    if (stateMachine.value !== "intro") {
+      return;
+    }
+
+    audio.prime();
+    audio.playCue("ui-accept");
+    hud.clearTransientState();
+    input.clearTransientState();
+    stateMachine.transition("title");
+  };
+
   const overlays = createOverlays(
     overlayLayer,
     {
+      onSkipIntro: skipIntro,
       onStart: startRun,
       onRestart: restartRun,
       onContinueChapter: () => {
@@ -235,10 +248,45 @@ export function createApp(rootElement: HTMLDivElement): void {
     enterDebugPlaytest(`DEV WAVE ${waveNumber}`);
   };
 
+  const forceDebugGameOver = (): void => {
+    enterDebugPlaytest("DEV FORCED TERMINATION");
+    const view = getSessionSnapshot(session);
+    const summary = createRunSummary(
+      view,
+      [
+        {
+          position: { ...view.player.position },
+          type: "player-died"
+        }
+      ],
+      usedActionCards
+    );
+    const recordUpdate = recordRunResult(summary, false, runRecords);
+    runRecords = recordUpdate.records;
+    overlays.setRecords(runRecords);
+    overlays.setRunSummary(summary, recordUpdate.highlights);
+    input.clearTransientState();
+    stateMachine.transition("game-over");
+  };
+
+  const forceDebugVictory = (): void => {
+    enterDebugPlaytest("DEV FORCED RESTORATION");
+    const view = getSessionSnapshot(session);
+    const summary = createRunSummary(view, [], usedActionCards);
+    const recordUpdate = recordRunResult(summary, true, runRecords);
+    runRecords = recordUpdate.records;
+    overlays.setRecords(runRecords);
+    overlays.setRunSummary(summary, recordUpdate.highlights);
+    input.clearTransientState();
+    stateMachine.transition("victory");
+  };
+
   const debugPanel = import.meta.env.DEV
     ? createDebugPanel(overlayLayer, {
         onApplyPreset: applyDebugPreset,
+        onForceGameOver: forceDebugGameOver,
         onForceWave: forceDebugWave,
+        onForceVictory: forceDebugVictory,
         onGrantUpgrade: grantDebugUpgrade,
         onSetSeed: setDebugSeed,
         onUseLiveRandom: useLiveRandom
@@ -571,6 +619,17 @@ export function createApp(rootElement: HTMLDivElement): void {
       return;
     }
 
+    if (
+      stateMachine.value === "intro" &&
+      (event.code === "Enter" ||
+        event.code === "Space" ||
+        event.code === "Escape")
+    ) {
+      event.preventDefault();
+      skipIntro();
+      return;
+    }
+
     if (event.code === "Enter" && stateMachine.value === "title") {
       event.preventDefault();
       startRun();
@@ -636,7 +695,7 @@ export function createApp(rootElement: HTMLDivElement): void {
   scene.setProjectiles([]);
   scene.setSpawnWarnings([]);
 
-  stateMachine.transition("title");
+  stateMachine.transition("intro");
 
   window.addEventListener("beforeunload", () => {
     input.dispose();

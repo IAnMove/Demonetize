@@ -19,6 +19,7 @@ interface OverlayHandlers {
   onContinueChapter: () => void;
   onRestart: () => void;
   onSelectUpgrade: (upgradeId: UpgradeId) => void;
+  onSkipIntro: () => void;
   onStart: () => void;
 }
 
@@ -152,6 +153,38 @@ export function createOverlays(
 
   localeOptions.append(spanishButton, englishButton);
   localeSwitch.append(localeLabel, localeOptions);
+
+  const introScreen = document.createElement("section");
+  introScreen.className = "screen intro-screen";
+  introScreen.hidden = true;
+  introScreen.addEventListener("click", handlers.onSkipIntro);
+
+  const introBackdrop = document.createElement("div");
+  introBackdrop.className = "intro-backdrop";
+
+  const introPanel = document.createElement("div");
+  introPanel.className = "intro-panel";
+
+  const introEyebrow = document.createElement("span");
+  introEyebrow.className = "intro-eyebrow";
+
+  const introCopy = document.createElement("p");
+  introCopy.className = "intro-copy";
+
+  const introActions = document.createElement("div");
+  introActions.className = "intro-actions";
+
+  const introSkipButton = document.createElement("button");
+  introSkipButton.className = "intro-skip";
+  introSkipButton.type = "button";
+  introSkipButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    handlers.onSkipIntro();
+  });
+
+  introActions.append(introSkipButton);
+  introPanel.append(introEyebrow, introCopy, introActions);
+  introScreen.append(introBackdrop, introPanel);
 
   const titleScreen = document.createElement("section");
   titleScreen.className = "screen";
@@ -426,6 +459,7 @@ export function createOverlays(
 
   container.append(
     localeSwitch,
+    introScreen,
     titleScreen,
     chapterScreen,
     betweenWavesScreen,
@@ -447,9 +481,9 @@ export function createOverlays(
 
     switch (reason) {
       case "artillery":
-        return isSpanish ? `${label}: impacto de artilleria` : `${label}: artillery impact`;
+        return isSpanish ? `${label}: impacto de reportes` : `${label}: mass-report impact`;
       case "boss-beam":
-        return isSpanish ? `${label}: rayo del Overseer` : `${label}: Overseer beam`;
+        return isSpanish ? `${label}: rayo del Algoritmo` : `${label}: Algorithm beam`;
       case "boss-pulse":
         return isSpanish ? `${label}: pulso de fase` : `${label}: phase pulse`;
       case "charger":
@@ -457,15 +491,15 @@ export function createOverlays(
       case "drone":
         return isSpanish ? `${label}: contacto de rastreador` : `${label}: scout contact`;
       case "edge":
-        return isSpanish ? `${label}: borde de arena` : `${label}: arena edge`;
+        return isSpanish ? `${label}: borde del feed` : `${label}: feed edge`;
       case "elite-burst":
         return isSpanish ? `${label}: nucleo volatil` : `${label}: volatile core`;
       case "overseer":
-        return isSpanish ? `${label}: embestida del Overseer` : `${label}: Overseer rush`;
+        return isSpanish ? `${label}: embestida del Algoritmo` : `${label}: Algorithm rush`;
       case "purge":
-        return isSpanish ? `${label}: purga de rejilla` : `${label}: grid purge`;
+        return isSpanish ? `${label}: barrido de borrado` : `${label}: deletion sweep`;
       case "relay":
-        return isSpanish ? `${label}: relay escoltado` : `${label}: relay escort`;
+        return isSpanish ? `${label}: amplificacion bot` : `${label}: bot amplification`;
       case "sentry":
         return isSpanish ? `${label}: linea sentry` : `${label}: sentry lane`;
       default:
@@ -586,43 +620,43 @@ export function createOverlays(
       }
       if (summary.rank === "s") {
         return isSpanish
-          ? "Evento de Extincion Overseer"
-          : "Overseer Extinction Event";
+          ? "Evento de Extincion del Algoritmo"
+          : "Algorithm Extinction Event";
       }
       if (profile.primary === "dash-killer") {
-        return isSpanish ? "Santo del Impacto Neon" : "Saint of Neon Impact";
+        return isSpanish ? "Santo del Impacto de Apelacion" : "Appeal Impact Saint";
       }
       if (profile.primary === "glass-cannon") {
-        return isSpanish ? "Apostol del Canon de Cristal" : "Apostle of the Glass Cannon";
+        return isSpanish ? "Apostol del Canal de Riesgo" : "Apostle of the Risk Channel";
       }
       if (profile.primary === "spread-control") {
-        return isSpanish ? "Huracan de Reticula" : "Lattice Hurricane";
+        return isSpanish ? "Huracan de Senal" : "Signal Hurricane";
       }
-      return isSpanish ? "Superviviente de la Brecha" : "Breach Survivor";
+      return isSpanish ? "Superviviente del Feed" : "Feed Survivor";
     }
 
     if (summary.waveNumber <= 2) {
-      return isSpanish ? "Manco de Mantenimiento" : "Maintenance Manco";
+      return isSpanish ? "Canal no encontrado" : "Channel Not Found";
     }
     if (rescueTotal >= 3 && rescueEfficiency < 0.4) {
-      return isSpanish ? "Carnicero de Extracciones" : "Extraction Butcher";
+      return isSpanish ? "Apelaciones Perdidas" : "Lost Appeals";
     }
     if (summary.chapter >= 2 && summary.waveNumber >= 8) {
       return isSpanish ? "Rozaste la Leyenda" : "So Close to Legend";
     }
     if (summary.rescuedCount >= 3 && summary.bestRescueStreak >= 2) {
-      return isSpanish ? "Casi los Sacas a Todos" : "Almost Got Them Out";
+      return isSpanish ? "Casi los Restauras a Todos" : "Almost Restored Them All";
     }
     if (summary.bestCombo >= 10) {
-      return isSpanish ? "Duende de Cadena" : "Chain Goblin";
+      return isSpanish ? "Cadena Imparable" : "Chain Runaway";
     }
     if (profile.primary === "glass-cannon") {
-      return isSpanish ? "Canon Roto pero Elegante" : "Shattered but Stylish";
+      return isSpanish ? "Canal Roto pero Elegante" : "Broken but Broadcast";
     }
     if (profile.primary === "spread-control") {
-      return isSpanish ? "Ventilador de Balas" : "Bullet Fanatic";
+      return isSpanish ? "Fanatico de Senal" : "Signal Fanatic";
     }
-    return isSpanish ? "Heroe de Propulsor Roto" : "Broken Thruster Hero";
+    return isSpanish ? "Heroe del Upload Roto" : "Broken Upload Hero";
   };
 
   const renderBuildLineFromChoices = (selectedChoices: UpgradeChoice[]): string => {
@@ -818,12 +852,12 @@ export function createOverlays(
     ) {
       return isSpanish
         ? {
-            primary: "Mejora la extraccion",
-            secondary: "Estas dejando demasiadas senales colapsar en la arena."
+            primary: "Mejora la restauracion",
+            secondary: "Estas dejando demasiadas apelaciones expirar dentro de The Feed."
           }
         : {
-            primary: "Improve extraction",
-            secondary: "Too many rescue signals are collapsing in the arena."
+            primary: "Improve restoration",
+            secondary: "Too many creator appeals are expiring inside The Feed."
           };
     }
 
@@ -882,9 +916,12 @@ export function createOverlays(
   };
 
   const renderStaticText = (): void => {
+    introEyebrow.textContent = i18n.t("intro.eyebrow");
+    introCopy.textContent = i18n.t("intro.copy");
+    introSkipButton.textContent = i18n.t("intro.skip");
     titleEyebrow.textContent = i18n.t("title.eyebrow");
-    titleHeading.main.textContent = "OVERSEER";
-    titleHeading.accent.textContent = "Neon Siege";
+    titleHeading.main.textContent = i18n.t("title.main");
+    titleHeading.accent.textContent = i18n.t("title.accent");
     titleCopy.textContent = i18n.t("title.copy");
     titlePlayerTag.textContent = i18n.t("title.playerTag");
     titleEnemyTag.textContent = i18n.t("title.enemyTag");
@@ -1150,6 +1187,7 @@ export function createOverlays(
     },
     setState: (state) => {
       localeSwitch.hidden = state === "playing";
+      introScreen.hidden = state !== "intro";
       titleScreen.hidden = state !== "title";
       chapterScreen.hidden = state !== "chapter-transition";
       betweenWavesScreen.hidden = state !== "between-waves";
@@ -1190,13 +1228,13 @@ function getBuildLabel(
   const isSpanish = i18n.getLocale() === "es";
   switch (archetype) {
     case "dash-killer":
-      return isSpanish ? "Asesino de Dash" : "Dash Killer";
+      return isSpanish ? "Golpe de Apelacion" : "Appeal Striker";
     case "glass-cannon":
-      return isSpanish ? "Canon de Cristal" : "Glass Cannon";
+      return isSpanish ? "Canal de Riesgo" : "Risk Channel";
     case "spread-control":
-      return isSpanish ? "Control de Rafaga" : "Spread Control";
+      return isSpanish ? "Abanico de Senal" : "Signal Fanout";
     default:
-      return isSpanish ? "Brecha Balanceada" : "Balanced Breach";
+      return isSpanish ? "Nucleo Creador" : "Creator Core";
   }
 }
 
@@ -1556,7 +1594,7 @@ function getUpgradePreview(
       };
     case "card-overcore":
       return {
-        bonuses: [isSpanish ? "Carta" : "Card", isSpanish ? "+ Casco max" : "+ Max hull"],
+        bonuses: [isSpanish ? "Carta" : "Card", isSpanish ? "+ Senal max" : "+ Max signal"],
         tradeoffs: [isSpanish ? "1 uso" : "1 use"]
       };
     case "chatgpt-router":
@@ -1606,7 +1644,7 @@ function getUpgradePreview(
       };
     case "fortress-frame":
       return {
-        bonuses: [isSpanish ? "+ Casco" : "+ Hull"],
+        bonuses: [isSpanish ? "+ Senal" : "+ Signal"],
         tradeoffs: []
       };
     case "glass-reactor":
@@ -1626,7 +1664,7 @@ function getUpgradePreview(
       };
     case "magnet-sweep":
       return {
-        bonuses: [isSpanish ? "+ Orbes" : "+ Orbs"],
+        bonuses: [isSpanish ? "+ Confianza" : "+ Trust"],
         tradeoffs: []
       };
     case "overcharge-rounds":
@@ -1641,7 +1679,7 @@ function getUpgradePreview(
       };
     case "phase-battery":
       return {
-        bonuses: [isSpanish ? "+ Casco" : "+ Hull"],
+        bonuses: [isSpanish ? "+ Senal" : "+ Signal"],
         tradeoffs: []
       };
     case "shock-greaves":
