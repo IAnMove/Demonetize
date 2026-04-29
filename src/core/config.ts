@@ -26,6 +26,7 @@ export const GAME_CONFIG = {
   bossExposeSeconds: 1.65,
   bossExposeDamageMultiplier: 1.7,
   bossCollapseHoldSeconds: 1.55,
+  playerDeathHoldSeconds: 2.05,
   arenaBreachSeconds: 1.95,
   artilleryWarningSeconds: 0.82,
   artilleryImpactSeconds: 0.2,

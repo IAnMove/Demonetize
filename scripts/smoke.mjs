@@ -27,9 +27,12 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 const indexHtml = readProjectFile("index.html");
 const mainSource = readProjectFile("src/main.ts");
 const appSource = readProjectFile("src/core/app.ts");
+const configSource = readProjectFile("src/core/config.ts");
 const i18nSource = readProjectFile("src/core/i18n.ts");
 const overlaySource = readProjectFile("src/ui/overlays.ts");
+const sceneSource = readProjectFile("src/render/scene.ts");
 const stateMachineSource = readProjectFile("src/core/stateMachine.ts");
+const stylesSource = readProjectFile("src/styles.css");
 
 for (const scriptName of ["dev", "build", "preview", "smoke", "test"]) {
   assert(
@@ -61,6 +64,17 @@ assert(
 assert(
   i18nSource.includes('"intro.copy"') && i18nSource.includes('"title.main"'),
   "Intro and rethemed title copy must be localized."
+);
+assert(
+  configSource.includes("playerDeathHoldSeconds") &&
+    appSource.includes("pendingGameOver") &&
+    sceneSource.includes("spawnPlayerDeathBreakup"),
+  "Death flow should hold the game-over overlay until player breakup renders."
+);
+assert(
+  /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&
+    /\.boost-card-face\.is-mini\s*\{[^}]*width:\s*4\.85rem/s.test(stylesSource),
+  "Passive cards should render larger at the bottom-left HUD position."
 );
 
 const states = [

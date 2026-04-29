@@ -90,6 +90,12 @@ export function createApp(rootElement: HTMLDivElement): void {
   let debugRandomRestore: (() => void) | null = null;
   let pbAnnouncedThisRun = false;
   let usedActionCards: ActionCardId[] = [];
+  let pendingGameOver:
+    | {
+        summary: RunSummary;
+        timeRemaining: number;
+      }
+    | null = null;
   let pendingVictory:
     | {
         summary: RunSummary;
@@ -99,7 +105,12 @@ export function createApp(rootElement: HTMLDivElement): void {
 
   hud = createHud(overlayLayer, i18n, {
     onUseActionCard: (instanceId, clientX, clientY) => {
-      if (stateMachine.value !== "playing" || actionCardFreezeRemaining > 0) {
+      if (
+        stateMachine.value !== "playing" ||
+        actionCardFreezeRemaining > 0 ||
+        pendingGameOver ||
+        pendingVictory
+      ) {
         return false;
       }
 
@@ -137,6 +148,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     audio.playCue("ui-accept");
     hud.clearTransientState();
     input.clearTransientState();
+    pendingGameOver = null;
     pendingVictory = null;
     announcedWave = 0;
     pbAnnouncedThisRun = false;
@@ -151,6 +163,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     audio.playCue("ui-accept");
     hud.clearTransientState();
     input.clearTransientState();
+    pendingGameOver = null;
     pendingVictory = null;
     announcedWave = 0;
     pbAnnouncedThisRun = false;
@@ -202,6 +215,7 @@ export function createApp(rootElement: HTMLDivElement): void {
   const enterDebugPlaytest = (message: string): void => {
     hud.clearTransientState();
     input.clearTransientState();
+    pendingGameOver = null;
     pendingVictory = null;
     announcedWave = 0;
     pbAnnouncedThisRun = false;
@@ -251,22 +265,26 @@ export function createApp(rootElement: HTMLDivElement): void {
   const forceDebugGameOver = (): void => {
     enterDebugPlaytest("DEV FORCED TERMINATION");
     const view = getSessionSnapshot(session);
+    const frameEvents: FrameEvent[] = [
+      {
+        position: { ...view.player.position },
+        type: "player-died"
+      }
+    ];
     const summary = createRunSummary(
       view,
-      [
-        {
-          position: { ...view.player.position },
-          type: "player-died"
-        }
-      ],
+      frameEvents,
       usedActionCards
     );
-    const recordUpdate = recordRunResult(summary, false, runRecords);
-    runRecords = recordUpdate.records;
-    overlays.setRecords(runRecords);
-    overlays.setRunSummary(summary, recordUpdate.highlights);
+    scene.setPlayerPose(view.player.position, view.player.facing);
+    scene.emitEffects(frameEvents);
+    audio.dispatch(frameEvents);
+    applyFrameFeedback(hud, frameEvents, i18n);
     input.clearTransientState();
-    stateMachine.transition("game-over");
+    pendingGameOver = {
+      summary,
+      timeRemaining: GAME_CONFIG.playerDeathHoldSeconds
+    };
   };
 
   const forceDebugVictory = (): void => {
@@ -341,6 +359,36 @@ export function createApp(rootElement: HTMLDivElement): void {
     GAME_CONFIG.fixedStepSeconds,
     (deltaSeconds) => {
       if (stateMachine.value !== "playing") {
+        return;
+      }
+
+      if (pendingGameOver) {
+        pendingGameOver.timeRemaining = Math.max(
+          0,
+          pendingGameOver.timeRemaining - deltaSeconds
+        );
+
+        if (pendingGameOver.timeRemaining <= 0) {
+          const recordUpdate = recordRunResult(
+            pendingGameOver.summary,
+            false,
+            runRecords
+          );
+          runRecords = recordUpdate.records;
+          overlays.setRecords(runRecords);
+          overlays.setRunSummary(
+            pendingGameOver.summary,
+            recordUpdate.highlights
+          );
+          if (hasRecordHighlight(recordUpdate.highlights)) {
+            audio.playCue("record-best");
+            hud.announce(i18n.t("announce.recordBest"), "system");
+            hud.notify(i18n.t("notify.recordBest"), "system");
+          }
+          pendingGameOver = null;
+          input.clearTransientState();
+          stateMachine.transition("game-over");
+        }
         return;
       }
 
@@ -558,17 +606,12 @@ export function createApp(rootElement: HTMLDivElement): void {
 
       if (result.playerDied) {
         const summary = createRunSummary(view, result.frameEvents, usedActionCards);
-        const recordUpdate = recordRunResult(summary, false, runRecords);
-        runRecords = recordUpdate.records;
-        overlays.setRecords(runRecords);
-        overlays.setRunSummary(summary, recordUpdate.highlights);
-        if (hasRecordHighlight(recordUpdate.highlights)) {
-          audio.playCue("record-best");
-          hud.announce(i18n.t("announce.recordBest"), "system");
-          hud.notify(i18n.t("notify.recordBest"), "system");
-        }
         input.clearTransientState();
-        stateMachine.transition("game-over");
+        actionCardFreezeRemaining = 0;
+        pendingGameOver = {
+          summary,
+          timeRemaining: GAME_CONFIG.playerDeathHoldSeconds
+        };
       } else if (result.chapterTransitionReady) {
         audio.playCue("legendary-ready");
         hud.announce(i18n.t("announce.legendaryReady"), "system");

@@ -150,6 +150,16 @@ interface EffectParticle {
   velocity: THREE.Vector3;
 }
 
+interface PlayerDebris {
+  active: boolean;
+  angularVelocity: THREE.Vector3;
+  life: number;
+  material: THREE.MeshStandardMaterial;
+  maxLife: number;
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+}
+
 interface SpawnWarningView {
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
@@ -490,6 +500,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const dashEchoRoot = new THREE.Group();
   scene.add(dashEchoRoot);
 
+  const playerDebrisRoot = new THREE.Group();
+  scene.add(playerDebrisRoot);
+
   const particleRoot = new THREE.Group();
   scene.add(particleRoot);
 
@@ -599,6 +612,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const particlePool = Array.from({ length: 72 }, () =>
     createEffectParticle(particleRoot)
   );
+  const playerDebrisPool = createPlayerDebrisPool(playerDebrisRoot);
   let arenaDangerLevel = 0;
   let arenaChapter = 1;
   let arenaChapterBlend = 0;
@@ -607,6 +621,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   let chapterPulse = 0;
   let reducedMotion = false;
   let dashEchoCooldown = 0;
+  let playerDestructionTime = 0;
   let playerHeading = 0;
   const playerPosition = new THREE.Vector3();
   let playerVisuals: PlayerVisuals = {
@@ -770,6 +785,58 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       if (emitted >= count) {
         break;
       }
+    }
+  };
+
+  const spawnPlayerDeathBreakup = (position: Vec2Like): void => {
+    playerDestructionTime = GAME_CONFIG.playerDeathHoldSeconds;
+    playerRoot.visible = false;
+    playerHealthBarRoot.visible = false;
+    reticle.visible = false;
+
+    const fragmentCount = reducedMotion ? 7 : playerDebrisPool.length;
+    for (let index = 0; index < playerDebrisPool.length; index += 1) {
+      const debris = playerDebrisPool[index];
+      const active = index < fragmentCount;
+      debris.active = active;
+      debris.mesh.visible = active;
+
+      if (!active) {
+        continue;
+      }
+
+      const angle = playerHeading + (Math.PI * 2 * index) / fragmentCount;
+      const spread = 2.4 + Math.random() * 3.2;
+      const lift = 1.4 + Math.random() * 2.2;
+      const sideJitter = (Math.random() - 0.5) * 0.9;
+      const scale = 0.82 + Math.random() * 0.34;
+
+      debris.life = 1.25 + Math.random() * 0.62;
+      debris.maxLife = debris.life;
+      debris.mesh.position.set(
+        position.x + Math.cos(angle) * 0.18,
+        0.22 + Math.random() * 0.22,
+        position.y + Math.sin(angle) * 0.18
+      );
+      debris.mesh.rotation.set(
+        Math.random() * Math.PI,
+        playerHeading + Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+      debris.mesh.scale.setScalar(scale);
+      debris.mesh.userData.baseScale = scale;
+      debris.velocity.set(
+        Math.cos(angle) * spread + Math.cos(angle + Math.PI * 0.5) * sideJitter,
+        lift,
+        Math.sin(angle) * spread + Math.sin(angle + Math.PI * 0.5) * sideJitter
+      );
+      debris.angularVelocity.set(
+        (Math.random() - 0.5) * 7.4,
+        (Math.random() - 0.5) * 9.2,
+        (Math.random() - 0.5) * 7.4
+      );
+      debris.material.opacity = 1;
+      debris.material.emissiveIntensity = 2.4;
     }
   };
 
@@ -1600,15 +1667,25 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             );
             break;
           case "player-died":
-            cameraShake = Math.max(cameraShake, 0.34);
+            cameraShake = Math.max(cameraShake, 0.46);
+            spawnPlayerDeathBreakup(event.position);
             emitParticleBurst(
               event.position,
               "#ff5b7f",
-              16,
-              3.8,
-              0.48,
+              reducedMotion ? 18 : 30,
+              4.6,
+              0.68,
               [0.08, 0.2]
             );
+            emitParticleBurst(
+              event.position,
+              "#fff0cb",
+              reducedMotion ? 10 : 18,
+              3.8,
+              0.54,
+              [0.07, 0.18]
+            );
+            spawnGroundDecal(event.position, "#ff5b7f", 3.6, 1.05, 0.22);
             break;
           case "upgrade-ready":
             emitParticleBurst(
@@ -1843,6 +1920,14 @@ export function createGameScene(container: HTMLDivElement): GameScene {
           strike.phase === "active"
             ? 0.16 + (1 - strike.progress) * 0.1
             : 0.04 + strike.progress * 0.08;
+      }
+
+      playerDestructionTime = Math.max(0, playerDestructionTime - renderDeltaSeconds);
+      const playerDestroyed = playerDestructionTime > 0;
+      playerRoot.visible = !playerDestroyed;
+      playerHealthBarRoot.visible = !playerDestroyed;
+      if (playerDestroyed) {
+        reticle.visible = false;
       }
 
       const invulnerabilityBlink =
@@ -2086,6 +2171,42 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         particleMaterial.emissiveIntensity = 0.6 + lifeRatio * 1.8;
         particleMaterial.opacity = lifeRatio;
         particle.mesh.scale.multiplyScalar(0.985);
+      }
+
+      for (const debris of playerDebrisPool) {
+        if (!debris.active) {
+          continue;
+        }
+
+        debris.life = Math.max(0, debris.life - renderDeltaSeconds);
+        if (debris.life <= 0) {
+          debris.active = false;
+          debris.mesh.visible = false;
+          continue;
+        }
+
+        debris.velocity.y -= 4.4 * renderDeltaSeconds;
+        debris.mesh.position.addScaledVector(debris.velocity, renderDeltaSeconds);
+        if (debris.mesh.position.y < 0.08) {
+          debris.mesh.position.y = 0.08;
+          debris.velocity.y = Math.abs(debris.velocity.y) * 0.18;
+          debris.velocity.x *= 0.72;
+          debris.velocity.z *= 0.72;
+        } else {
+          debris.velocity.multiplyScalar(0.985);
+        }
+        debris.mesh.rotation.x += debris.angularVelocity.x * renderDeltaSeconds;
+        debris.mesh.rotation.y += debris.angularVelocity.y * renderDeltaSeconds;
+        debris.mesh.rotation.z += debris.angularVelocity.z * renderDeltaSeconds;
+
+        const lifeRatio = debris.life / debris.maxLife;
+        const baseScale =
+          typeof debris.mesh.userData.baseScale === "number"
+            ? debris.mesh.userData.baseScale
+            : 1;
+        debris.mesh.scale.setScalar(baseScale * (0.72 + lifeRatio * 0.28));
+        debris.material.opacity = Math.min(1, lifeRatio * 1.25);
+        debris.material.emissiveIntensity = 0.6 + lifeRatio * 2.2;
       }
 
       for (const decal of decalPool) {
@@ -2752,6 +2873,10 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     setPlayerPose: (position, facing) => {
       playerPosition.set(position.x, 0, position.y);
       playerRoot.position.copy(playerPosition);
+      if (playerDestructionTime <= 0) {
+        playerRoot.visible = true;
+        playerHealthBarRoot.visible = true;
+      }
       followTarget.set(position.x, 0, position.y);
       playerHeading = Math.atan2(facing.x, facing.y);
       playerRoot.rotation.y = playerHeading;
@@ -3360,6 +3485,53 @@ function createEffectParticle(parent: THREE.Group): EffectParticle {
     mesh,
     velocity: new THREE.Vector3()
   };
+}
+
+function createPlayerDebrisPool(parent: THREE.Group): PlayerDebris[] {
+  const geometries: THREE.BufferGeometry[] = [
+    new THREE.CylinderGeometry(0.34, 0.42, 0.2, 6),
+    new THREE.BoxGeometry(0.7, 0.1, 0.24),
+    new THREE.BoxGeometry(0.24, 0.16, 0.42),
+    new THREE.BoxGeometry(0.24, 0.16, 0.42),
+    new THREE.ConeGeometry(0.18, 0.42, 6),
+    new THREE.TorusGeometry(0.34, 0.035, 8, 22),
+    new THREE.IcosahedronGeometry(0.18, 0),
+    new THREE.BoxGeometry(0.44, 0.12, 0.18),
+    new THREE.BoxGeometry(0.44, 0.12, 0.18),
+    new THREE.IcosahedronGeometry(0.12, 0)
+  ];
+  const colors = [
+    "#31f5ff",
+    "#96ff47",
+    "#96ff47",
+    "#96ff47",
+    "#ffffff",
+    "#ffb84a",
+    "#fff0cb",
+    "#31f5ff",
+    "#31f5ff",
+    "#ff5b7f"
+  ];
+
+  return geometries.map((geometry, index) => {
+    const material = createNeonMaterial(colors[index] ?? "#31f5ff", 2.2);
+    material.transparent = true;
+    material.opacity = 0;
+    material.depthWrite = false;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    parent.add(mesh);
+
+    return {
+      active: false,
+      angularVelocity: new THREE.Vector3(),
+      life: 0,
+      material,
+      maxLife: 0,
+      mesh,
+      velocity: new THREE.Vector3()
+    };
+  });
 }
 
 function createDashEchoView(parent: THREE.Group): DashEchoView {

@@ -846,8 +846,8 @@ button.intro-skip {
 }
 
 .boost-card-face.is-mini {
-  width: 3.75rem;
-  min-height: 5.65rem;
+  width: 4.85rem;
+  min-height: 7.28rem;
   border-radius: 0.52rem;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.08),
@@ -999,14 +999,14 @@ button.intro-skip {
 
 .boost-card-face.is-mini .boost-card-title {
   overflow: hidden;
-  font-size: 0.42rem;
+  font-size: 0.52rem;
   line-height: 1.05;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;
 }
 
 .boost-card-face.is-mini .boost-card-glyph {
-  font-size: 0.64rem;
+  font-size: 0.82rem;
 }
 
 .boost-card-face.is-mini .boost-card-count {
@@ -1082,7 +1082,7 @@ button.intro-skip {
 }
 
 .controls-strip {
-  left: 1rem;
+  right: 1rem;
   bottom: 1rem;
   display: grid;
   gap: 0.6rem;
@@ -1104,20 +1104,21 @@ button.intro-skip {
 
 .passive-card-rail {
   left: 1rem;
-  top: 10.7rem;
+  bottom: 1rem;
   z-index: 4;
   display: flex;
-  flex-direction: column;
-  gap: 0.38rem;
-  align-items: flex-start;
-  max-height: calc(100vh - 18rem);
+  flex-direction: row;
+  flex-wrap: wrap-reverse;
+  gap: 0.48rem;
+  align-items: flex-end;
+  max-width: min(34rem, calc(100vw - 2rem));
   pointer-events: none;
 }
 
 .passive-card-stack {
   position: relative;
-  width: 3.75rem;
-  min-height: 5.65rem;
+  width: 4.85rem;
+  min-height: 7.28rem;
 }
 
 .passive-card-stack.has-stack::before,
@@ -1707,16 +1708,18 @@ button.action-card:focus-visible::after {
   }
 
   .passive-card-rail {
-    top: 20.4rem;
+    top: auto;
+    bottom: 5.6rem;
     left: 0.8rem;
-    gap: 0.22rem;
-    max-height: calc(100vh - 23.8rem);
+    gap: 0.32rem;
+    max-width: calc(100vw - 1.6rem);
+    max-height: none;
   }
 
   .passive-card-stack,
   .boost-card-face.is-mini {
-    width: 2.68rem;
-    min-height: 4.02rem;
+    width: 3.28rem;
+    min-height: 4.92rem;
   }
 
   .hud-cluster {
