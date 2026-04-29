@@ -6,10 +6,211 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>OVERSEER: Neon Siege</title>
+    <title>The Feed: Authenticity Purge</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #050811;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100%;
+        background:
+          linear-gradient(138deg, rgba(255, 91, 127, 0.14), transparent 46%),
+          linear-gradient(32deg, rgba(49, 245, 255, 0.1), transparent 58%),
+          linear-gradient(180deg, #050811 0%, #03040a 100%);
+        color: #edf4ff;
+        font-family: "Bahnschrift", "Segoe UI", Arial, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      .boot-intro {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        align-items: center;
+        padding: clamp(1.2rem, 4vw, 4rem);
+        background:
+          linear-gradient(rgba(49, 245, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 91, 127, 0.08) 1px, transparent 1px),
+          linear-gradient(146deg, rgba(49, 245, 255, 0.08), transparent 44%),
+          linear-gradient(28deg, rgba(255, 184, 74, 0.12), transparent 52%);
+        background-size: 4rem 4rem;
+      }
+
+      .boot-intro::before,
+      .boot-intro::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .boot-intro::before {
+        background:
+          linear-gradient(118deg, rgba(49, 245, 255, 0.14), transparent 34%),
+          linear-gradient(252deg, rgba(255, 91, 127, 0.12), transparent 42%);
+      }
+
+      .boot-intro::after {
+        background: repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.035) 0,
+          rgba(255, 255, 255, 0.035) 1px,
+          transparent 1px,
+          transparent 7px
+        );
+        opacity: 0.42;
+      }
+
+      .boot-intro-panel {
+        position: relative;
+        z-index: 1;
+        width: min(64rem, 100%);
+        text-shadow: 0 0 28px rgba(49, 245, 255, 0.2);
+        animation: boot-reveal 900ms ease-out both;
+      }
+
+      .boot-intro-kicker {
+        display: block;
+        margin-bottom: 1.1rem;
+        color: #ffb84a;
+        font-size: clamp(0.72rem, 1.3vw, 0.95rem);
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .boot-intro-copy {
+        max-width: 58rem;
+        margin: 0;
+        color: #f5fbff;
+        font-size: clamp(1.32rem, 4.3vw, 3.9rem);
+        font-weight: 900;
+        line-height: 1.12;
+        text-transform: uppercase;
+      }
+
+      .boot-intro-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1.8rem;
+      }
+
+      .boot-intro-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.6rem;
+        padding: 0.7rem 1rem;
+        border: 1px solid rgba(255, 184, 74, 0.36);
+        border-radius: 0.7rem;
+        color: #fff0cb;
+        background: rgba(7, 10, 25, 0.72);
+        box-shadow: 0 0 22px rgba(255, 184, 74, 0.14);
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .boot-intro-start {
+        min-height: 2.6rem;
+        padding: 0.7rem 1rem;
+        border: 1px solid rgba(49, 245, 255, 0.38);
+        border-radius: 0.7rem;
+        color: #c9faff;
+        background: rgba(49, 245, 255, 0.12);
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.72;
+        animation: boot-pulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes boot-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(1.2rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes boot-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 12px rgba(49, 245, 255, 0.12);
+        }
+        50% {
+          box-shadow: 0 0 24px rgba(49, 245, 255, 0.28);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .boot-intro {
+          align-items: end;
+          padding-bottom: 4rem;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <section class="boot-intro" aria-live="polite">
+        <div class="boot-intro-panel">
+          <span
+            class="boot-intro-kicker"
+            data-boot-en="The Authenticity Purge"
+            data-boot-es="La Purga de Autenticidad"
+          >The Authenticity Purge</span>
+          <p
+            class="boot-intro-copy"
+            data-boot-en="Year 2026. The spaces where people create are vanishing one by one. A few human signals still burn inside the blackout. Yours is one of them."
+            data-boot-es="En 2026. Los espacios donde la gente crea desaparecen uno a uno. Unos pocos rastros humanos siguen vivos en la oscuridad. El tuyo es uno de ellos."
+          >Year 2026. The spaces where people create are vanishing one by one. A few human signals still burn inside the blackout. Yours is one of them.</p>
+          <div class="boot-intro-actions">
+            <span
+              class="boot-intro-status"
+              data-boot-en="Loading The Feed"
+              data-boot-es="Cargando The Feed"
+            >Loading The Feed</span>
+            <button
+              class="boot-intro-start"
+              type="button"
+              disabled
+              data-boot-en="Start signal locked"
+              data-boot-es="Inicio bloqueado"
+            >Start signal locked</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script>
+      (() => {
+        const stored = window.localStorage.getItem("overseer.locale");
+        const locale = (stored || window.navigator.language || "en").toLowerCase().startsWith("es")
+          ? "es"
+          : "en";
+        document.documentElement.lang = locale;
+        document.querySelectorAll("[data-boot-en]").forEach((node) => {
+          const key = locale === "es" ? "bootEs" : "bootEn";
+          node.textContent = node.dataset[key] || node.textContent;
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
   </html>

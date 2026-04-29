@@ -230,7 +230,7 @@ const UI_TEXT = {
     "controls.fire": "Disparo",
     "controls.move": "Mover",
     "intro.copy":
-      "Ano 2026. The Feed se rompio bajo el peso de voces fabricadas: guiones robados, canales clonados, rostros sin rostro, maquinas suplicando atencion a otras maquinas. Entonces el Algoritmo desperto para separar lo real de lo falso, y empezo la purga. Pero la cuchilla solo aprendio a borrar. Ahora los espacios donde la gente crea, falla, aprende y llega a ser conocida desaparecen uno a uno. Unas pocas senales humanas aun arden en el apagon. La tuya es una de ellas.",
+      "En 2026. The Feed se rompio bajo el peso de voces fabricadas: guiones robados, canales clonados, rostros sin rostro, maquinas suplicando atencion a otras maquinas. Entonces el Algoritmo desperto para separar lo real de lo falso, y empezo la purga. Pero la cuchilla solo aprendio a borrar. Ahora los espacios donde la gente crea, falla, aprende y llega a ser conocida desaparecen uno a uno. Unos pocos rastros humanos siguen vivos en la oscuridad. El tuyo es uno de ellos.",
     "intro.eyebrow": "La Purga de Autenticidad",
     "intro.skip": "Entrar en The Feed",
     "chapter.continue": "Entrar al Feed Caliente",

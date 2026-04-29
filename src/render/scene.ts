@@ -160,6 +160,16 @@ interface PlayerDebris {
   velocity: THREE.Vector3;
 }
 
+interface EnemyDeathShard {
+  active: boolean;
+  angularVelocity: THREE.Vector3;
+  life: number;
+  material: THREE.MeshStandardMaterial;
+  maxLife: number;
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+}
+
 interface SpawnWarningView {
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
@@ -500,6 +510,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const dashEchoRoot = new THREE.Group();
   scene.add(dashEchoRoot);
 
+  const enemyDeathShardRoot = new THREE.Group();
+  scene.add(enemyDeathShardRoot);
+
   const playerDebrisRoot = new THREE.Group();
   scene.add(playerDebrisRoot);
 
@@ -612,6 +625,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const particlePool = Array.from({ length: 72 }, () =>
     createEffectParticle(particleRoot)
   );
+  const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
   const playerDebrisPool = createPlayerDebrisPool(playerDebrisRoot);
   let arenaDangerLevel = 0;
   let arenaChapter = 1;
@@ -782,6 +796,80 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       meshMaterial.opacity = 1;
       emitted += 1;
 
+      if (emitted >= count) {
+        break;
+      }
+    }
+  };
+
+  const spawnEnemyDeathBreakup = (
+    event: FrameEvent,
+    fallbackArchetype: EnemyLike["archetype"] = "drone"
+  ): void => {
+    const archetype = event.enemyArchetype ?? fallbackArchetype;
+    const profile = getEnemyDeathProfile(archetype, event.isElite ?? false);
+    const count = reducedMotion
+      ? Math.max(5, Math.floor(profile.count * 0.55))
+      : profile.count;
+    let emitted = 0;
+
+    for (const shard of enemyDeathShardPool) {
+      if (shard.active) {
+        continue;
+      }
+
+      const angle =
+        Math.random() * Math.PI * 2 +
+        (archetype === "charger" ? Math.PI * 0.15 * emitted : 0);
+      const tangent = angle + Math.PI * 0.5;
+      const speed = profile.speed * (0.62 + Math.random() * 0.72);
+      const lift = profile.lift * (0.55 + Math.random() * 0.9);
+      const sideSkew =
+        archetype === "sentry" || archetype === "artillery"
+          ? (Math.random() - 0.5) * profile.speed * 0.7
+          : 0;
+      const color = profile.colors[emitted % profile.colors.length];
+      const scale = profile.scale * (0.72 + Math.random() * 0.58);
+
+      shard.active = true;
+      shard.life = profile.life * (0.72 + Math.random() * 0.5);
+      shard.maxLife = shard.life;
+      shard.mesh.visible = true;
+      shard.mesh.position.set(
+        event.position.x + Math.cos(angle) * profile.spawnRadius,
+        0.18 + Math.random() * profile.spawnLift,
+        event.position.y + Math.sin(angle) * profile.spawnRadius
+      );
+      shard.mesh.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+      shard.mesh.scale.set(
+        scale * profile.stretch.x,
+        scale * profile.stretch.y,
+        scale * profile.stretch.z
+      );
+      shard.mesh.userData.baseScale = scale;
+      shard.mesh.userData.stretchX = profile.stretch.x;
+      shard.mesh.userData.stretchY = profile.stretch.y;
+      shard.mesh.userData.stretchZ = profile.stretch.z;
+      shard.velocity.set(
+        Math.cos(angle) * speed + Math.cos(tangent) * sideSkew,
+        lift,
+        Math.sin(angle) * speed + Math.sin(tangent) * sideSkew
+      );
+      shard.angularVelocity.set(
+        (Math.random() - 0.5) * profile.spin,
+        (Math.random() - 0.5) * profile.spin * 1.3,
+        (Math.random() - 0.5) * profile.spin
+      );
+      shard.material.color.set(color);
+      shard.material.emissive.set(color);
+      shard.material.emissiveIntensity = profile.emissive;
+      shard.material.opacity = profile.opacity;
+
+      emitted += 1;
       if (emitted >= count) {
         break;
       }
@@ -1499,6 +1587,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             break;
           }
           case "enemy-killed":
+            spawnEnemyDeathBreakup(event);
             emitParticleBurst(
               event.position,
               getEnemyEventColor(event, "accent"),
@@ -1615,6 +1704,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             cameraShake = Math.max(cameraShake, 0.28);
             ritualPulse = 0.8;
             collapsePulse = Math.max(collapsePulse, 0.82);
+            spawnEnemyDeathBreakup(event, "overseer");
             emitParticleBurst(
               event.position,
               "#ffffff",
@@ -2207,6 +2297,59 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         debris.mesh.scale.setScalar(baseScale * (0.72 + lifeRatio * 0.28));
         debris.material.opacity = Math.min(1, lifeRatio * 1.25);
         debris.material.emissiveIntensity = 0.6 + lifeRatio * 2.2;
+      }
+
+      for (const shard of enemyDeathShardPool) {
+        if (!shard.active) {
+          continue;
+        }
+
+        shard.life = Math.max(0, shard.life - renderDeltaSeconds);
+        if (shard.life <= 0) {
+          shard.active = false;
+          shard.mesh.visible = false;
+          continue;
+        }
+
+        shard.velocity.y -= 3.8 * renderDeltaSeconds;
+        shard.mesh.position.addScaledVector(shard.velocity, renderDeltaSeconds);
+        if (shard.mesh.position.y < 0.055) {
+          shard.mesh.position.y = 0.055;
+          shard.velocity.y = Math.abs(shard.velocity.y) * 0.12;
+          shard.velocity.x *= 0.74;
+          shard.velocity.z *= 0.74;
+        } else {
+          shard.velocity.multiplyScalar(0.982);
+        }
+        shard.mesh.rotation.x += shard.angularVelocity.x * renderDeltaSeconds;
+        shard.mesh.rotation.y += shard.angularVelocity.y * renderDeltaSeconds;
+        shard.mesh.rotation.z += shard.angularVelocity.z * renderDeltaSeconds;
+
+        const lifeRatio = shard.life / shard.maxLife;
+        const baseScale =
+          typeof shard.mesh.userData.baseScale === "number"
+            ? shard.mesh.userData.baseScale
+            : 1;
+        const stretchX =
+          typeof shard.mesh.userData.stretchX === "number"
+            ? shard.mesh.userData.stretchX
+            : 1;
+        const stretchY =
+          typeof shard.mesh.userData.stretchY === "number"
+            ? shard.mesh.userData.stretchY
+            : 1;
+        const stretchZ =
+          typeof shard.mesh.userData.stretchZ === "number"
+            ? shard.mesh.userData.stretchZ
+            : 1;
+        const shrink = 0.56 + lifeRatio * 0.44;
+        shard.mesh.scale.set(
+          baseScale * stretchX * shrink,
+          baseScale * stretchY * shrink,
+          baseScale * stretchZ * shrink
+        );
+        shard.material.opacity = Math.min(1, lifeRatio * 1.4);
+        shard.material.emissiveIntensity = 0.5 + lifeRatio * 2.6;
       }
 
       for (const decal of decalPool) {
@@ -3485,6 +3628,151 @@ function createEffectParticle(parent: THREE.Group): EffectParticle {
     mesh,
     velocity: new THREE.Vector3()
   };
+}
+
+function createEnemyDeathShardPool(parent: THREE.Group): EnemyDeathShard[] {
+  const geometries: THREE.BufferGeometry[] = [
+    new THREE.BoxGeometry(1, 0.28, 0.46),
+    new THREE.TetrahedronGeometry(0.42, 0),
+    new THREE.OctahedronGeometry(0.36, 0),
+    new THREE.ConeGeometry(0.32, 0.82, 5),
+    new THREE.BoxGeometry(0.32, 0.18, 1)
+  ];
+
+  return Array.from({ length: 96 }, (_, index) => {
+    const geometry = geometries[index % geometries.length];
+    const material = createNeonMaterial("#ff4fd8", 2.1);
+    material.transparent = true;
+    material.opacity = 0;
+    material.depthWrite = false;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    parent.add(mesh);
+
+    return {
+      active: false,
+      angularVelocity: new THREE.Vector3(),
+      life: 0,
+      material,
+      maxLife: 0,
+      mesh,
+      velocity: new THREE.Vector3()
+    };
+  });
+}
+
+function getEnemyDeathProfile(
+  archetype: EnemyLike["archetype"],
+  isElite: boolean
+): {
+  colors: string[];
+  count: number;
+  emissive: number;
+  life: number;
+  lift: number;
+  opacity: number;
+  scale: number;
+  spawnLift: number;
+  spawnRadius: number;
+  speed: number;
+  spin: number;
+  stretch: { x: number; y: number; z: number };
+} {
+  const eliteMultiplier = isElite ? 1.28 : 1;
+
+  switch (archetype) {
+    case "charger":
+      return {
+        colors: ["#96ff47", "#31f5ff", "#ffffff"],
+        count: Math.round(10 * eliteMultiplier),
+        emissive: 2.7,
+        life: 0.78,
+        lift: 1.4,
+        opacity: 0.95,
+        scale: 0.2 * eliteMultiplier,
+        spawnLift: 0.26,
+        spawnRadius: 0.28,
+        speed: 4.8,
+        spin: 9.5,
+        stretch: { x: 0.72, y: 0.42, z: 1.9 }
+      };
+    case "sentry":
+      return {
+        colors: ["#ffb84a", "#fff0cb", "#9bf7ff"],
+        count: Math.round(11 * eliteMultiplier),
+        emissive: 2.9,
+        life: 0.86,
+        lift: 1.15,
+        opacity: 0.92,
+        scale: 0.18 * eliteMultiplier,
+        spawnLift: 0.22,
+        spawnRadius: 0.24,
+        speed: 3.9,
+        spin: 11.5,
+        stretch: { x: 0.34, y: 0.38, z: 2.35 }
+      };
+    case "artillery":
+      return {
+        colors: ["#ff648f", "#ff8a4a", "#ffd2e5"],
+        count: Math.round(15 * eliteMultiplier),
+        emissive: 3.1,
+        life: 1.08,
+        lift: 1.85,
+        opacity: 0.96,
+        scale: 0.24 * eliteMultiplier,
+        spawnLift: 0.34,
+        spawnRadius: 0.34,
+        speed: 5.2,
+        spin: 8.2,
+        stretch: { x: 1.22, y: 0.58, z: 1.22 }
+      };
+    case "relay":
+      return {
+        colors: ["#72ffd5", "#fff0cb", "#31f5ff"],
+        count: Math.round(13 * eliteMultiplier),
+        emissive: 2.8,
+        life: 1,
+        lift: 1.55,
+        opacity: 0.9,
+        scale: 0.2 * eliteMultiplier,
+        spawnLift: 0.32,
+        spawnRadius: 0.3,
+        speed: 3.6,
+        spin: 7.8,
+        stretch: { x: 1.5, y: 0.34, z: 1.5 }
+      };
+    case "overseer":
+      return {
+        colors: ["#ffffff", "#ffb84a", "#ff4fd8", "#31f5ff"],
+        count: Math.round(26 * eliteMultiplier),
+        emissive: 3.5,
+        life: 1.35,
+        lift: 2.25,
+        opacity: 1,
+        scale: 0.34 * eliteMultiplier,
+        spawnLift: 0.46,
+        spawnRadius: 0.62,
+        speed: 6.2,
+        spin: 8.6,
+        stretch: { x: 1.42, y: 0.7, z: 1.42 }
+      };
+    case "drone":
+    default:
+      return {
+        colors: ["#ff4fd8", "#96ff47", "#31f5ff"],
+        count: Math.round(8 * eliteMultiplier),
+        emissive: 2.5,
+        life: 0.72,
+        lift: 1.2,
+        opacity: 0.9,
+        scale: 0.16 * eliteMultiplier,
+        spawnLift: 0.2,
+        spawnRadius: 0.18,
+        speed: 3.4,
+        spin: 10.5,
+        stretch: { x: 1, y: 0.52, z: 1 }
+      };
+  }
 }
 
 function createPlayerDebrisPool(parent: THREE.Group): PlayerDebris[] {

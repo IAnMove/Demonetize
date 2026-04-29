@@ -11,6 +11,7 @@ interface DebugPanelHandlers {
   onForceWave: (waveNumber: number) => void;
   onForceGameOver: () => void;
   onForceVictory: () => void;
+  onPreviewEnemyDeaths: () => void;
   onGrantUpgrade: (upgradeId: UpgradeId, count: number) => void;
   onSetSeed: (seed: string) => void;
   onUseLiveRandom: () => void;
@@ -117,7 +118,13 @@ export function createDebugPanel(
     setStatus("Forced victory screen.");
   });
 
-  outcomeControls.append(forceLossButton, forceWinButton);
+  const enemyFxButton = createDebugButton("Enemy FX");
+  enemyFxButton.addEventListener("click", () => {
+    handlers.onPreviewEnemyDeaths();
+    setStatus("Previewed enemy death effects.");
+  });
+
+  outcomeControls.append(forceLossButton, forceWinButton, enemyFxButton);
 
   const grantControls = document.createElement("div");
   grantControls.className = "debug-panel-section is-wide";

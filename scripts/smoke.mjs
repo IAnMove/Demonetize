@@ -46,6 +46,18 @@ assert(
   "index.html must expose the #app mount point."
 );
 assert(
+  indexHtml.includes("<title>The Feed: Authenticity Purge</title>") &&
+    indexHtml.includes("boot-intro") &&
+    indexHtml.includes("Loading The Feed") &&
+    indexHtml.includes("Start signal locked") &&
+    /class="boot-intro-start"[\s\S]*?disabled/.test(indexHtml),
+  "index.html must render the rethemed boot intro and locked start affordance before the JS bundle loads."
+);
+assert(
+  !indexHtml.includes("Ano 2026") && !i18nSource.includes("Ano 2026"),
+  "Spanish intro copy should avoid the unaccented 'Ano 2026' fallback."
+);
+assert(
   mainSource.includes('document.querySelector<HTMLDivElement>("#app")'),
   "main.ts must query the typed #app mount point."
 );
@@ -70,6 +82,17 @@ assert(
     appSource.includes("pendingGameOver") &&
     sceneSource.includes("spawnPlayerDeathBreakup"),
   "Death flow should hold the game-over overlay until player breakup renders."
+);
+assert(
+  appSource.includes('rootElement.querySelector(".boot-intro")') &&
+    appSource.includes("rootElement.replaceChildren(shell)"),
+  "App boot should keep the static intro visible until the real intro is ready."
+);
+assert(
+  sceneSource.includes("spawnEnemyDeathBreakup") &&
+    sceneSource.includes("createEnemyDeathShardPool") &&
+    sceneSource.includes("getEnemyDeathProfile"),
+  "Enemy deaths should spawn archetype-specific breakup fragments."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

@@ -59,8 +59,12 @@ interface RunSummary {
 }
 
 export function createApp(rootElement: HTMLDivElement): void {
+  const bootIntro = rootElement.querySelector(".boot-intro");
   const shell = document.createElement("div");
   shell.className = "app-shell";
+  if (bootIntro) {
+    shell.style.visibility = "hidden";
+  }
 
   const sceneLayer = document.createElement("div");
   sceneLayer.className = "scene-layer";
@@ -299,12 +303,55 @@ export function createApp(rootElement: HTMLDivElement): void {
     stateMachine.transition("victory");
   };
 
+  const previewEnemyDeathEffects = (): void => {
+    enterDebugPlaytest("DEV ENEMY DEATH FX");
+    const view = getSessionSnapshot(session);
+    const origin = view.player.position;
+    const frameEvents: FrameEvent[] = [
+      {
+        enemyArchetype: "drone",
+        position: { x: origin.x - 4.4, y: origin.y - 2.2 },
+        type: "enemy-killed"
+      },
+      {
+        enemyArchetype: "charger",
+        position: { x: origin.x - 2.4, y: origin.y + 2.4 },
+        type: "enemy-killed"
+      },
+      {
+        enemyArchetype: "sentry",
+        position: { x: origin.x, y: origin.y - 3.8 },
+        type: "enemy-killed"
+      },
+      {
+        enemyArchetype: "artillery",
+        isElite: true,
+        position: { x: origin.x + 2.6, y: origin.y + 2.4 },
+        type: "enemy-killed"
+      },
+      {
+        enemyArchetype: "relay",
+        position: { x: origin.x + 4.6, y: origin.y - 1.7 },
+        type: "enemy-killed"
+      },
+      {
+        position: { x: origin.x, y: origin.y + 4.4 },
+        type: "boss-defeated"
+      }
+    ];
+
+    scene.emitEffects(frameEvents);
+    audio.dispatch(frameEvents);
+    applyFrameFeedback(hud, frameEvents, i18n);
+  };
+
   const debugPanel = import.meta.env.DEV
     ? createDebugPanel(overlayLayer, {
         onApplyPreset: applyDebugPreset,
         onForceGameOver: forceDebugGameOver,
         onForceWave: forceDebugWave,
         onForceVictory: forceDebugVictory,
+        onPreviewEnemyDeaths: previewEnemyDeathEffects,
         onGrantUpgrade: grantDebugUpgrade,
         onSetSeed: setDebugSeed,
         onUseLiveRandom: useLiveRandom
@@ -739,6 +786,10 @@ export function createApp(rootElement: HTMLDivElement): void {
   scene.setSpawnWarnings([]);
 
   stateMachine.transition("intro");
+  if (bootIntro) {
+    shell.style.visibility = "";
+    rootElement.replaceChildren(shell);
+  }
 
   window.addEventListener("beforeunload", () => {
     input.dispose();
