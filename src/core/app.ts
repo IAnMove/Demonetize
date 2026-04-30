@@ -24,24 +24,13 @@ import type { ActionCardId, UpgradeId } from "../gameplay/progression/upgrades";
 import { isActionCardId } from "../gameplay/progression/upgrades";
 import { getBuildProfile } from "../gameplay/progression/builds";
 import { getWaveThemeId } from "../gameplay/waves/waveConfig";
+import type { PlayerDamageSourceKind } from "../gameplay/player/player";
 import { createGameScene } from "../render/scene";
 import { createDebugPanel } from "../ui/debugPanel";
 import { createHud } from "../ui/hud";
 import { createOverlays } from "../ui/overlays";
 
-type RunLossReason =
-  | "artillery"
-  | "boss-beam"
-  | "boss-pulse"
-  | "charger"
-  | "drone"
-  | "edge"
-  | "elite-burst"
-  | "overrun"
-  | "overseer"
-  | "purge"
-  | "relay"
-  | "sentry";
+type RunLossReason = PlayerDamageSourceKind | "overrun";
 
 interface RunSummary {
   bestCombo: number;
@@ -890,6 +879,10 @@ function getRunLossReason(
 ): RunLossReason | undefined {
   if (!frameEvents.some((event) => event.type === "player-died")) {
     return undefined;
+  }
+
+  if (view.player.lastDamageSource) {
+    return view.player.lastDamageSource.kind;
   }
 
   for (let index = frameEvents.length - 1; index >= 0; index -= 1) {

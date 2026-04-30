@@ -18,6 +18,25 @@ export interface PlayerInput {
   primaryHeld: boolean;
 }
 
+export type PlayerDamageSourceKind =
+  | "artillery"
+  | "boss-beam"
+  | "boss-pulse"
+  | "charger"
+  | "drone"
+  | "edge"
+  | "elite-burst"
+  | "overseer"
+  | "purge"
+  | "relay"
+  | "sentry";
+
+export interface PlayerDamageSource {
+  amount: number;
+  kind: PlayerDamageSourceKind;
+  position: Vec2 | null;
+}
+
 export interface PlayerState {
   aim: Vec2;
   alive: boolean;
@@ -46,6 +65,7 @@ export interface PlayerState {
   haloDroneCount: number;
   hazardLevel: number;
   health: number;
+  lastDamageSource: PlayerDamageSource | null;
   maxHealth: number;
   moveSpeed: number;
   novaDashDamage: number;
@@ -84,6 +104,8 @@ interface DamageOptions {
   bypassInvulnerability?: boolean;
   knockbackDistance?: number;
   knockbackSource?: Vec2;
+  source?: PlayerDamageSourceKind;
+  sourcePosition?: Vec2;
 }
 
 export function createPlayer(): PlayerState {
@@ -115,6 +137,7 @@ export function createPlayer(): PlayerState {
     haloDroneCount: 0,
     hazardLevel: 0,
     health: GAME_CONFIG.player.maxHealth,
+    lastDamageSource: null,
     maxHealth: GAME_CONFIG.player.maxHealth,
     moveSpeed: GAME_CONFIG.player.moveSpeed,
     novaDashDamage: 0,
@@ -166,6 +189,7 @@ export function resetPlayer(player: PlayerState): void {
   player.haloDroneCount = 0;
   player.hazardLevel = 0;
   player.health = GAME_CONFIG.player.maxHealth;
+  player.lastDamageSource = null;
   player.maxHealth = GAME_CONFIG.player.maxHealth;
   player.moveSpeed = GAME_CONFIG.player.moveSpeed;
   player.novaDashDamage = 0;
@@ -279,7 +303,20 @@ export function applyDamage(
     return false;
   }
 
+  const previousHealth = player.health;
   player.health = clamp(player.health - damage, 0, player.maxHealth);
+  const appliedDamage = Math.max(0, previousHealth - player.health);
+  player.lastDamageSource = options.source
+    ? {
+        amount: appliedDamage,
+        kind: options.source,
+        position: options.sourcePosition
+          ? { ...options.sourcePosition }
+          : options.knockbackSource
+            ? { ...options.knockbackSource }
+            : null
+      }
+    : null;
   player.damageFlash = 1;
   if (options.knockbackSource) {
     const awayFromHit = normalizeOrZero(

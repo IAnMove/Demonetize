@@ -29,6 +29,8 @@ const mainSource = readProjectFile("src/main.ts");
 const appSource = readProjectFile("src/core/app.ts");
 const configSource = readProjectFile("src/core/config.ts");
 const i18nSource = readProjectFile("src/core/i18n.ts");
+const playerSource = readProjectFile("src/gameplay/player/player.ts");
+const enemySource = readProjectFile("src/gameplay/enemies/enemies.ts");
 const overlaySource = readProjectFile("src/ui/overlays.ts");
 const sceneSource = readProjectFile("src/render/scene.ts");
 const stateMachineSource = readProjectFile("src/core/stateMachine.ts");
@@ -93,6 +95,18 @@ assert(
     sceneSource.includes("createEnemyDeathShardPool") &&
     sceneSource.includes("getEnemyDeathProfile"),
   "Enemy deaths should spawn archetype-specific breakup fragments."
+);
+assert(
+  playerSource.includes("PlayerDamageSourceKind") &&
+    playerSource.includes("lastDamageSource") &&
+    appSource.includes("view.player.lastDamageSource"),
+  "Death summaries should prefer structured player damage attribution over visual heuristics."
+);
+assert(
+  enemySource.includes('source: "boss-beam"') &&
+    enemySource.includes("source: enemy.archetype") &&
+    appSource.includes('type RunLossReason = PlayerDamageSourceKind | "overrun"'),
+  "Enemy and boss damage should record exact loss sources."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

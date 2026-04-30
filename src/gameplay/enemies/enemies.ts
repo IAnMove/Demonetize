@@ -513,7 +513,8 @@ function updateDrone(enemy: EnemyState, player: PlayerState): void {
   ) {
     if (
       applyDamage(player, enemy.contactDamage, {
-        knockbackSource: enemy.position
+        knockbackSource: enemy.position,
+        source: enemy.archetype
       })
     ) {
       enemy.attackCooldownRemaining = 0.72;
@@ -547,7 +548,8 @@ function updateCharger(enemy: EnemyState, player: PlayerState): void {
       ) {
         if (
           applyDamage(player, enemy.contactDamage * 0.35, {
-            knockbackSource: enemy.position
+            knockbackSource: enemy.position,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 1.1;
@@ -591,7 +593,8 @@ function updateCharger(enemy: EnemyState, player: PlayerState): void {
         if (
           applyDamage(player, enemy.contactDamage, {
             knockbackSource: enemy.position,
-            knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.2
+            knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.2,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 1.25;
@@ -679,7 +682,8 @@ function updateSentry(
         if (
           applyDamage(player, enemy.contactDamage, {
             knockbackSource: enemy.position,
-            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.7
+            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.7,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 0.72;
@@ -797,7 +801,8 @@ function updateArtillery(
         if (
           applyDamage(player, enemy.contactDamage, {
             knockbackSource: enemy.position,
-            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.82
+            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.82,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 0.82;
@@ -929,7 +934,8 @@ function updateRelay(
         if (
           applyDamage(player, enemy.contactDamage * 0.85, {
             knockbackSource: enemy.position,
-            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.75
+            knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.75,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 0.88;
@@ -1080,7 +1086,8 @@ function updateOverseer(
       ) {
         if (
           applyDamage(player, enemy.contactDamage * (enemy.phase === 2 ? 0.55 : 0.45), {
-            knockbackSource: enemy.position
+            knockbackSource: enemy.position,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 1;
@@ -1182,7 +1189,8 @@ function updateOverseer(
         if (
           applyDamage(player, enemy.contactDamage, {
             knockbackSource: enemy.position,
-            knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.45
+            knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.45,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 1.2;
@@ -1218,7 +1226,8 @@ function updateOverseer(
       ) {
         if (
           applyDamage(player, enemy.contactDamage * 0.25, {
-            knockbackSource: enemy.position
+            knockbackSource: enemy.position,
+            source: enemy.archetype
           })
         ) {
           enemy.attackCooldownRemaining = 0.9;
@@ -1331,7 +1340,8 @@ function fireSentryShot(
 
   applyDamage(player, (16 + enemy.maxHealth * 0.06) * (enemy.isElite ? 1.12 : 1), {
     knockbackSource: enemy.position,
-    knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.95
+    knockbackDistance: GAME_CONFIG.player.damageKnockback * 0.95,
+    source: "sentry"
   });
 }
 
@@ -1369,6 +1379,7 @@ function fireOverseerBeam(
 
   applyDamage(player, enemy.contactDamage * 0.9, {
     knockbackSource: enemy.position,
-    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.25
+    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.25,
+    source: "boss-beam"
   });
 }

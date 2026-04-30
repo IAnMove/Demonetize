@@ -10,7 +10,7 @@
 
 ## Follow-Up Tasks
 
-- Add a structured `lastDamageSource` field in simulation state if death cause needs exact attribution.
+- Completed in `push-exact-death-attribution`: add a structured `lastDamageSource` field in simulation state if death cause needs exact attribution.
 - Persist build recap metadata into run records if the title screen should show the full previous-build breakdown.
 - Add one manual browser pass in Firefox or WebKit for reduced-motion and mobile final-panel scrolling.
 - Consider code splitting only after jam MVP lock, since current load and build behavior are acceptable for static hosting.

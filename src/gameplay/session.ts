@@ -428,6 +428,7 @@ export function forceWaveForDebugSession(
   session.pendingUpgradeChoices = [];
   session.player.alive = true;
   session.player.health = session.player.maxHealth;
+  session.player.lastDamageSource = null;
   session.player.damageInvulnerabilityRemaining = 0;
   session.player.dashCooldownRemaining = 0;
   session.player.fireCooldownRemaining = 0;
@@ -950,7 +951,8 @@ export function updateGameSession(
       session.player,
       GAME_CONFIG.edgeDamagePerSecond * hazardStrength * deltaSeconds,
       {
-        bypassInvulnerability: true
+        bypassInvulnerability: true,
+        source: "edge"
       }
     );
     session.dangerLevel = 1;
@@ -1923,7 +1925,8 @@ function applyEliteDeathBurst(
 
   applyDamage(session.player, enemy.deathBurstDamage, {
     knockbackSource: enemy.position,
-    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.2
+    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.2,
+    source: "elite-burst"
   });
 }
 
@@ -2178,7 +2181,8 @@ function applyArenaPurgeDamage(
   }
 
   applyDamage(player, GAME_CONFIG.arenaPurgeDamagePerSecond * deltaSeconds, {
-    bypassInvulnerability: true
+    bypassInvulnerability: true,
+    source: "purge"
   });
 }
 
@@ -2196,7 +2200,8 @@ function detonateArtilleryStrike(
 
   applyDamage(player, strike.damage, {
     knockbackSource: strike.position,
-    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.3
+    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.3,
+    source: "artillery"
   });
 }
 
@@ -2213,7 +2218,8 @@ function applyBossPulseDamage(
 
   applyDamage(player, GAME_CONFIG.bossPulseDamage, {
     knockbackSource: pulse.origin,
-    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.35
+    knockbackDistance: GAME_CONFIG.player.damageKnockback * 1.35,
+    source: "boss-pulse"
   });
 }
 
