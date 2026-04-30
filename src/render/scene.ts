@@ -177,6 +177,24 @@ interface EnemyDeathShard {
   velocity: THREE.Vector3;
 }
 
+interface ChannelObituaryView {
+  active: boolean;
+  avatar: THREE.Mesh;
+  avatarMaterial: THREE.MeshBasicMaterial;
+  baseScale: number;
+  baseY: number;
+  label: THREE.Mesh;
+  labelCanvas: HTMLCanvasElement;
+  labelContext: CanvasRenderingContext2D;
+  labelMaterial: THREE.MeshBasicMaterial;
+  labelTexture: THREE.CanvasTexture;
+  life: number;
+  maxLife: number;
+  ring: THREE.Mesh;
+  ringMaterial: THREE.MeshBasicMaterial;
+  root: THREE.Group;
+}
+
 interface SpawnWarningView {
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
@@ -527,6 +545,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const enemyDeathShardRoot = new THREE.Group();
   scene.add(enemyDeathShardRoot);
 
+  const channelObituaryRoot = new THREE.Group();
+  scene.add(channelObituaryRoot);
+
   const playerDebrisRoot = new THREE.Group();
   scene.add(playerDebrisRoot);
 
@@ -640,6 +661,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     createEffectParticle(particleRoot)
   );
   const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
+  const channelObituaryPool = Array.from({ length: 14 }, () =>
+    createChannelObituaryView(channelObituaryRoot, channelAvatarAtlas)
+  );
   const playerDebrisPool = createPlayerDebrisPool(playerDebrisRoot);
   let arenaDangerLevel = 0;
   let arenaChapter = 1;
@@ -888,6 +912,36 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         break;
       }
     }
+  };
+
+  const spawnChannelObituary = (event: FrameEvent): void => {
+    if (
+      typeof event.channelAvatarIndex !== "number" ||
+      typeof event.channelName !== "string"
+    ) {
+      return;
+    }
+
+    const obituary = channelObituaryPool.find((candidate) => !candidate.active);
+    if (!obituary) {
+      return;
+    }
+
+    const maxLife = reducedMotion ? 0.9 : 1.55;
+    obituary.active = true;
+    obituary.life = maxLife;
+    obituary.maxLife = maxLife;
+    obituary.baseY = event.isElite ? 1.08 : 0.92;
+    obituary.baseScale = event.isElite ? 1.14 : 1;
+    obituary.root.visible = true;
+    obituary.root.position.set(event.position.x, obituary.baseY, event.position.y);
+    obituary.root.scale.setScalar(obituary.baseScale);
+    obituary.root.userData.spinOffset = Math.random() * Math.PI * 2;
+    obituary.avatarMaterial.opacity = 1;
+    obituary.labelMaterial.opacity = 1;
+    obituary.ringMaterial.opacity = 0.74;
+    updateChannelAvatarGeometryUv(obituary.avatar.geometry, event.channelAvatarIndex);
+    drawChannelObituaryLabel(obituary, event.channelName);
   };
 
   const spawnPlayerDeathBreakup = (position: Vec2Like): void => {
@@ -1602,6 +1656,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
           }
           case "enemy-killed":
             spawnEnemyDeathBreakup(event);
+            spawnChannelObituary(event);
             emitParticleBurst(
               event.position,
               getEnemyEventColor(event, "accent"),
@@ -2366,6 +2421,34 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         shard.material.emissiveIntensity = 0.5 + lifeRatio * 2.6;
       }
 
+      for (const obituary of channelObituaryPool) {
+        if (!obituary.active) {
+          continue;
+        }
+
+        obituary.life = Math.max(0, obituary.life - renderDeltaSeconds);
+        if (obituary.life <= 0) {
+          obituary.active = false;
+          obituary.root.visible = false;
+          continue;
+        }
+
+        const lifeRatio = obituary.life / obituary.maxLife;
+        const progress = 1 - lifeRatio;
+        const lift = reducedMotion ? progress * 0.12 : progress * 0.66;
+        const cameraDeltaX = camera.position.x - obituary.root.position.x;
+        const cameraDeltaZ = camera.position.z - obituary.root.position.z;
+        obituary.root.position.y = obituary.baseY + lift;
+        obituary.root.rotation.y = Math.atan2(cameraDeltaX, cameraDeltaZ);
+        obituary.root.scale.setScalar(
+          obituary.baseScale * (0.92 + progress * 0.18)
+        );
+        obituary.avatarMaterial.opacity = Math.min(1, lifeRatio * 1.45);
+        obituary.labelMaterial.opacity = Math.min(1, lifeRatio * 1.28);
+        obituary.ringMaterial.opacity = 0.72 * lifeRatio;
+        obituary.ring.rotation.z += renderDeltaSeconds * 2.2;
+      }
+
       for (const decal of decalPool) {
         if (!decal.active) {
           continue;
@@ -2628,7 +2711,10 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         view.avatarDisc.visible = avatarVisible;
         if (avatarVisible) {
           if (view.avatarDisc.userData.avatarSeed !== enemy.id) {
-            updateChannelAvatarGeometryUv(view.avatarDisc.geometry, enemy.id);
+            updateChannelAvatarGeometryUv(
+              view.avatarDisc.geometry,
+              getChannelAvatarIndex(enemy.id)
+            );
             view.avatarDisc.userData.avatarSeed = enemy.id;
           }
           view.avatarDisc.position.y =
@@ -3574,11 +3660,124 @@ function createEnemyView(
   };
 }
 
+function createChannelObituaryView(
+  parent: THREE.Group,
+  channelAvatarAtlas: THREE.Texture
+): ChannelObituaryView {
+  const root = new THREE.Group();
+  root.visible = false;
+
+  const avatarMaterial = new THREE.MeshBasicMaterial({
+    color: "#ffffff",
+    depthWrite: false,
+    map: channelAvatarAtlas,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const avatar = new THREE.Mesh(
+    new THREE.CircleGeometry(0.64, 42),
+    avatarMaterial
+  );
+  avatar.position.y = 0.42;
+
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#ff314f",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.68, 0.76, 42), ringMaterial);
+  ring.position.copy(avatar.position);
+
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 512;
+  labelCanvas.height = 128;
+  const labelContext = labelCanvas.getContext("2d");
+  if (!labelContext) {
+    throw new Error("Unable to create channel obituary label canvas.");
+  }
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    depthWrite: false,
+    map: labelTexture,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(2.72, 0.68), labelMaterial);
+  label.position.y = -0.48;
+
+  root.add(ring, avatar, label);
+  parent.add(root);
+
+  return {
+    active: false,
+    avatar,
+    avatarMaterial,
+    baseScale: 1,
+    baseY: 0,
+    label,
+    labelCanvas,
+    labelContext,
+    labelMaterial,
+    labelTexture,
+    life: 0,
+    maxLife: 0,
+    ring,
+    ringMaterial,
+    root
+  };
+}
+
+function drawChannelObituaryLabel(
+  obituary: ChannelObituaryView,
+  channelName: string
+): void {
+  const { labelCanvas, labelContext } = obituary;
+  labelContext.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+  labelContext.fillStyle = "rgba(5, 6, 12, 0.78)";
+  labelContext.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+  labelContext.strokeStyle = "rgba(255, 49, 79, 0.72)";
+  labelContext.lineWidth = 5;
+  labelContext.strokeRect(5, 5, labelCanvas.width - 10, labelCanvas.height - 10);
+  labelContext.textAlign = "center";
+  labelContext.textBaseline = "middle";
+  labelContext.fillStyle = "#ff314f";
+  labelContext.font = '900 28px "Bahnschrift", "Segoe UI", Arial, sans-serif';
+  labelContext.fillText(
+    fitCanvasText(labelContext, channelName.toUpperCase(), 462),
+    labelCanvas.width / 2,
+    43
+  );
+  labelContext.font = '900 31px "Bahnschrift", "Segoe UI", Arial, sans-serif';
+  labelContext.fillText("INAUTHENTIC CONTENT", labelCanvas.width / 2, 86);
+  obituary.labelTexture.needsUpdate = true;
+}
+
+function fitCanvasText(
+  context: CanvasRenderingContext2D,
+  value: string,
+  maxWidth: number
+): string {
+  if (context.measureText(value).width <= maxWidth) {
+    return value;
+  }
+
+  let trimmed = value;
+  while (trimmed.length > 3 && context.measureText(`${trimmed}...`).width > maxWidth) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return `${trimmed}...`;
+}
+
 function updateChannelAvatarGeometryUv(
   geometry: THREE.BufferGeometry,
-  seed: number
+  avatarIndex: number
 ): void {
-  const avatarIndex = getChannelAvatarIndex(seed);
   const column = avatarIndex % CHANNEL_AVATAR_ATLAS_COLUMNS;
   const row = Math.floor(avatarIndex / CHANNEL_AVATAR_ATLAS_COLUMNS);
   const uvAttribute = geometry.getAttribute("uv");

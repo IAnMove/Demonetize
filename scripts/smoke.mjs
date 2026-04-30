@@ -135,6 +135,13 @@ assert(
   "Corporate AI lore should include channel takedown feedback and robotic verdict copy."
 );
 assert(
+  appSource.includes("channelAvatarIndex") &&
+    sceneSource.includes("createChannelObituaryView") &&
+    sceneSource.includes("drawChannelObituaryLabel") &&
+    i18nSource.includes("INAUTHENTIC CONTENT"),
+  "Channel kills should render a red obituary marker with the exact inauthentic-content verdict."
+);
+assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&
     /\.boost-card-face\.is-mini\s*\{[^}]*width:\s*4\.85rem/s.test(stylesSource),
   "Passive cards should render larger at the bottom-left HUD position."

@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../core/config";
-import { getChannelName } from "./channelLore";
+import { getChannelAvatarIndex, getChannelName } from "./channelLore";
 import {
   createProjectilePool,
   getActiveProjectiles,
@@ -1832,6 +1832,7 @@ function emitEnemyDeathEvents(
   }
 
   frameEvents.push({
+    channelAvatarIndex: getChannelAvatarIndex(enemy.id),
     channelName: getChannelName(enemy.id),
     ...getEnemyEventMeta(enemy),
     position: { ...enemy.position },

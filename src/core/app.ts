@@ -5,6 +5,7 @@ import { createI18n, type I18nController } from "./i18n";
 import { FixedStepLoop } from "./loop";
 import { loadRunRecords, recordRunResult } from "./runRecords";
 import { GameStateMachine, type GameState } from "./stateMachine";
+import { getChannelAvatarIndex, getChannelName } from "../gameplay/channelLore";
 import type { FrameEvent } from "../gameplay/events";
 import {
   applyDebugBuildPreset,
@@ -297,29 +298,38 @@ export function createApp(rootElement: HTMLDivElement): void {
     enterDebugPlaytest("DEV ENEMY DEATH FX");
     const view = getSessionSnapshot(session);
     const origin = view.player.position;
+    const withChannel = (seed: number): Pick<FrameEvent, "channelAvatarIndex" | "channelName"> => ({
+      channelAvatarIndex: getChannelAvatarIndex(seed),
+      channelName: getChannelName(seed)
+    });
     const frameEvents: FrameEvent[] = [
       {
+        ...withChannel(1001),
         enemyArchetype: "drone",
         position: { x: origin.x - 4.4, y: origin.y - 2.2 },
         type: "enemy-killed"
       },
       {
+        ...withChannel(1002),
         enemyArchetype: "charger",
         position: { x: origin.x - 2.4, y: origin.y + 2.4 },
         type: "enemy-killed"
       },
       {
+        ...withChannel(1003),
         enemyArchetype: "sentry",
         position: { x: origin.x, y: origin.y - 3.8 },
         type: "enemy-killed"
       },
       {
+        ...withChannel(1004),
         enemyArchetype: "artillery",
         isElite: true,
         position: { x: origin.x + 2.6, y: origin.y + 2.4 },
         type: "enemy-killed"
       },
       {
+        ...withChannel(1005),
         enemyArchetype: "relay",
         position: { x: origin.x + 4.6, y: origin.y - 1.7 },
         type: "enemy-killed"
@@ -1052,7 +1062,7 @@ function applyFrameFeedback(
           i18n.t("notify.enemyKilled", {
             channel: event.channelName ?? i18n.t("channel.unknown")
           }),
-          "system"
+          "danger"
         );
         break;
       case "arena-purge-start":
