@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +27,8 @@ const packageJson = JSON.parse(readProjectFile("package.json"));
 const indexHtml = readProjectFile("index.html");
 const mainSource = readProjectFile("src/main.ts");
 const appSource = readProjectFile("src/core/app.ts");
+const audioSource = readProjectFile("src/core/audio.ts");
+const channelLoreSource = readProjectFile("src/gameplay/channelLore.ts");
 const configSource = readProjectFile("src/core/config.ts");
 const i18nSource = readProjectFile("src/core/i18n.ts");
 const playerSource = readProjectFile("src/gameplay/player/player.ts");
@@ -49,10 +51,10 @@ assert(
   "index.html must expose the #app mount point."
 );
 assert(
-  indexHtml.includes("<title>The Feed: Authenticity Purge</title>") &&
+  indexHtml.includes("<title>T.O.P.E.: Corporate Purge AI</title>") &&
     indexHtml.includes("boot-intro") &&
-    indexHtml.includes("Loading The Feed") &&
-    indexHtml.includes("Start signal locked") &&
+    indexHtml.includes("Loading purge contract") &&
+    indexHtml.includes("Contract locked") &&
     /class="boot-intro-start"[\s\S]*?disabled/.test(indexHtml),
   "index.html must render the rethemed boot intro and locked start affordance before the JS bundle loads."
 );
@@ -115,6 +117,22 @@ assert(
     overlaySource.includes("createSummaryFromLastRun") &&
     overlaySource.includes("titleLastRunBuild"),
   "Run records should persist and render the previous build recap."
+);
+assert(
+  statSync(join(projectRoot, "public/avatars/channel-avatars.jpg")).size < 500_000 &&
+    channelLoreSource.includes("getChannelName") &&
+    channelLoreSource.includes("CHANNEL_AVATAR_ATLAS_COLUMNS") &&
+    sceneSource.includes("/avatars/channel-avatars.jpg") &&
+    sceneSource.includes("updateChannelAvatarGeometryUv"),
+  "Channel avatar atlas should be optimized and rendered on enemy views."
+);
+assert(
+  audioSource.includes("SpeechSynthesisUtterance") &&
+    audioSource.includes("inauthentic content") &&
+    appSource.includes("notify.enemyKilled") &&
+    i18nSource.includes("T.O.P.E.") &&
+    i18nSource.includes("contenido inautentico"),
+  "Corporate AI lore should include channel takedown feedback and robotic verdict copy."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

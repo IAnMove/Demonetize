@@ -1047,6 +1047,14 @@ function applyFrameFeedback(
         hud.pulse("damage");
         hud.notify(i18n.t("notify.eliteBurst"), "danger");
         break;
+      case "enemy-killed":
+        hud.notify(
+          i18n.t("notify.enemyKilled", {
+            channel: event.channelName ?? i18n.t("channel.unknown")
+          }),
+          "system"
+        );
+        break;
       case "arena-purge-start":
         hud.announce(i18n.t("announce.gridPurge"), "danger");
         hud.notify(i18n.t("notify.gridPurge"), "danger");

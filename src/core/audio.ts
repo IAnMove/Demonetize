@@ -56,6 +56,7 @@ export function createAudioBus(): AudioBus {
   master.connect(context.destination);
 
   let enabled = false;
+  let lastVerdictAt = -1000;
 
   const triggerCue = (cue: AudioCue): void => {
     if (!enabled) {
@@ -242,6 +243,43 @@ export function createAudioBus(): AudioBus {
     oscillator.stop(now + durationSeconds + 0.02);
   };
 
+  const playRoboticVerdict = (): void => {
+    const nowMs = window.performance.now();
+    if (nowMs - lastVerdictAt < 380) {
+      return;
+    }
+
+    lastVerdictAt = nowMs;
+    playTone("square", 92, 92, 0.12, 0.05);
+    window.setTimeout(() => playTone("sawtooth", 132, 84, 0.16, 0.04), 95);
+
+    if (
+      typeof window.speechSynthesis === "undefined" ||
+      typeof SpeechSynthesisUtterance === "undefined"
+    ) {
+      return;
+    }
+    if (window.speechSynthesis.speaking) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance("inauthentic content");
+    utterance.lang = "en-US";
+    utterance.pitch = 0.25;
+    utterance.rate = 0.78;
+    utterance.volume = 0.48;
+
+    const voices = window.speechSynthesis.getVoices();
+    const voice =
+      voices.find((candidate) => /david|mark|google us english/i.test(candidate.name)) ??
+      voices.find((candidate) => candidate.lang.toLowerCase().startsWith("en"));
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   return {
     dispatch: (events) => {
       if (events.length === 0 || !enabled) {
@@ -249,6 +287,7 @@ export function createAudioBus(): AudioBus {
       }
 
       const mapped = collapseEventCues(events);
+      const hasEnemyKill = events.some((event) => event.type === "enemy-killed");
       let playedCount = 0;
 
       for (const cue of mapped) {
@@ -258,6 +297,10 @@ export function createAudioBus(): AudioBus {
         if (playedCount >= 3) {
           break;
         }
+      }
+
+      if (hasEnemyKill) {
+        playRoboticVerdict();
       }
     },
     playCue: (cue) => {

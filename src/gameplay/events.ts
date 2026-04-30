@@ -48,6 +48,7 @@ export type FrameEventType =
 
 export interface FrameEvent {
   amount?: number;
+  channelName?: string;
   direction?: Vec2;
   enemyArchetype?: "drone" | "charger" | "sentry" | "artillery" | "relay" | "overseer";
   enemyMutation?: "bulwark" | "overclocked" | "volatile" | null;

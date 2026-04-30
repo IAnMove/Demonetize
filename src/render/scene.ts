@@ -1,5 +1,10 @@
 import * as THREE from "three";
 import { GAME_CONFIG } from "../core/config";
+import {
+  CHANNEL_AVATAR_ATLAS_COLUMNS,
+  CHANNEL_AVATAR_ATLAS_ROWS,
+  getChannelAvatarIndex
+} from "../gameplay/channelLore";
 import type { FrameEvent } from "../gameplay/events";
 import { createCamera, updateFollowCamera } from "./camera";
 import { createArenaMaterial, createNeonMaterial } from "./materials";
@@ -115,6 +120,8 @@ interface EnemyView {
   attackBeacon: THREE.Mesh;
   attackBeaconMaterial: THREE.MeshBasicMaterial;
   archetype: EnemyLike["archetype"];
+  avatarDisc: THREE.Mesh;
+  avatarMaterial: THREE.MeshBasicMaterial;
   bodyMaterial: THREE.MeshStandardMaterial;
   eliteHalo: THREE.Mesh;
   eliteHaloMaterial: THREE.MeshBasicMaterial;
@@ -256,6 +263,13 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const chapterHotMagenta = new THREE.Color("#ff7d64");
   const chapterColdCyan = new THREE.Color("#31f5ff");
   const chapterHotCyan = new THREE.Color("#ffb347");
+  const channelAvatarAtlas = new THREE.TextureLoader().load(
+    "/avatars/channel-avatars.jpg"
+  );
+  channelAvatarAtlas.colorSpace = THREE.SRGBColorSpace;
+  channelAvatarAtlas.wrapS = THREE.ClampToEdgeWrapping;
+  channelAvatarAtlas.wrapT = THREE.ClampToEdgeWrapping;
+  channelAvatarAtlas.anisotropy = 4;
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -662,7 +676,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       return pooledView;
     }
 
-    const nextView = createEnemyView(archetype);
+    const nextView = createEnemyView(archetype, channelAvatarAtlas);
     enemyRoot.add(nextView.root);
     return nextView;
   };
@@ -2610,6 +2624,30 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             : enemy.mode === "windup" || enemy.mode === "aim"
               ? 2.1
               : 1.2;
+        const avatarVisible = enemy.archetype !== "overseer";
+        view.avatarDisc.visible = avatarVisible;
+        if (avatarVisible) {
+          if (view.avatarDisc.userData.avatarSeed !== enemy.id) {
+            updateChannelAvatarGeometryUv(view.avatarDisc.geometry, enemy.id);
+            view.avatarDisc.userData.avatarSeed = enemy.id;
+          }
+          view.avatarDisc.position.y =
+            enemy.archetype === "charger"
+              ? 1.02
+              : enemy.archetype === "artillery"
+                ? 1.12
+              : enemy.archetype === "relay"
+                ? 1.14
+              : 1.08;
+          view.avatarDisc.scale.setScalar(
+            (enemy.archetype === "charger" ? 1.08 : 1.18) *
+              (enemy.isElite ? 1.08 : 1) *
+              (enemy.damageFlash > 0.08 ? 1.08 : 1)
+          );
+          view.avatarDisc.rotation.z =
+            Math.sin(sceneTime * 0.9 + enemy.id * 0.33) * 0.09;
+          view.avatarMaterial.opacity = 1;
+        }
         view.attackBeacon.visible = isAttackState || enemy.mode === "exposed";
         if (view.attackBeacon.visible) {
           const attackPulse =
@@ -3149,7 +3187,10 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   };
 }
 
-function createEnemyView(archetype: EnemyLike["archetype"]): EnemyView {
+function createEnemyView(
+  archetype: EnemyLike["archetype"],
+  channelAvatarAtlas: THREE.Texture
+): EnemyView {
   const root = new THREE.Group();
   const bodyMaterial = createNeonMaterial(
     archetype === "charger"
@@ -3178,6 +3219,22 @@ function createEnemyView(archetype: EnemyLike["archetype"]): EnemyView {
     1.6
   );
   const ringMaterial = createNeonMaterial("#ffffff", 1.1);
+  const avatarGeometry = new THREE.CircleGeometry(
+    archetype === "overseer" ? 0.62 : 0.56,
+    34
+  );
+  const avatarMaterial = new THREE.MeshBasicMaterial({
+    color: "#ffffff",
+    depthWrite: false,
+    map: channelAvatarAtlas,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const avatarDisc = new THREE.Mesh(avatarGeometry, avatarMaterial);
+  avatarDisc.rotation.x = -Math.PI / 2;
+  avatarDisc.position.y = archetype === "overseer" ? 1.28 : 1.08;
+  avatarDisc.visible = false;
 
   if (archetype === "charger") {
     const body = new THREE.Mesh(
@@ -3405,6 +3462,8 @@ function createEnemyView(archetype: EnemyLike["archetype"]): EnemyView {
     }
   }
 
+  root.add(avatarDisc);
+
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(
       archetype === "overseer" ? 0.92 : 0.6,
@@ -3500,6 +3559,8 @@ function createEnemyView(archetype: EnemyLike["archetype"]): EnemyView {
     attackBeacon,
     attackBeaconMaterial,
     archetype,
+    avatarDisc,
+    avatarMaterial,
     bodyMaterial,
     eliteHalo,
     eliteHaloMaterial,
@@ -3511,6 +3572,41 @@ function createEnemyView(archetype: EnemyLike["archetype"]): EnemyView {
     supportAuraMaterial,
     telegraph
   };
+}
+
+function updateChannelAvatarGeometryUv(
+  geometry: THREE.BufferGeometry,
+  seed: number
+): void {
+  const avatarIndex = getChannelAvatarIndex(seed);
+  const column = avatarIndex % CHANNEL_AVATAR_ATLAS_COLUMNS;
+  const row = Math.floor(avatarIndex / CHANNEL_AVATAR_ATLAS_COLUMNS);
+  const uvAttribute = geometry.getAttribute("uv");
+
+  if (!(uvAttribute instanceof THREE.BufferAttribute)) {
+    return;
+  }
+
+  const baseUvs =
+    geometry.userData.baseAvatarUvs instanceof Float32Array
+      ? geometry.userData.baseAvatarUvs
+      : new Float32Array(uvAttribute.array as ArrayLike<number>);
+  geometry.userData.baseAvatarUvs = baseUvs;
+
+  const cellWidth = 1 / CHANNEL_AVATAR_ATLAS_COLUMNS;
+  const cellHeight = 1 / CHANNEL_AVATAR_ATLAS_ROWS;
+  const offsetX = column * cellWidth;
+  const offsetY = 1 - (row + 1) * cellHeight;
+
+  for (let index = 0; index < uvAttribute.count; index += 1) {
+    uvAttribute.setXY(
+      index,
+      offsetX + baseUvs[index * 2] * cellWidth,
+      offsetY + baseUvs[index * 2 + 1] * cellHeight
+    );
+  }
+
+  uvAttribute.needsUpdate = true;
 }
 
 function createTelegraphView(parent: THREE.Group): TelegraphView {
