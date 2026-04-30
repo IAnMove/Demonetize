@@ -381,7 +381,9 @@ export function applyUpgradeSelection(
 
   session.selectedUpgradeIds.push(upgradeId);
   session.pendingUpgradeChoices = [];
-  advanceToNextWave(session.waveDirector);
+  if (session.waveDirector.phase === "paused") {
+    advanceToNextWave(session.waveDirector);
+  }
 }
 
 export function grantUpgradeForDebug(

@@ -51,6 +51,8 @@ interface RunSummary {
   waveNumber: number;
 }
 
+type ProgressionMode = "opening-action" | "upgrade";
+
 export interface OverlayController {
   setRecords: (records: RunRecords) => void;
   setChapterTransition: (
@@ -64,7 +66,8 @@ export interface OverlayController {
     selectedChoices: UpgradeChoice[],
     waveNumber: number,
     summary: RunSummary,
-    rescueBonusUnlocked: boolean
+    rescueBonusUnlocked: boolean,
+    mode?: ProgressionMode
   ) => void;
   setRunSummary: (summary: RunSummary, highlights?: RecordHighlights) => void;
   setState: (state: GameState) => void;
@@ -77,6 +80,7 @@ export function createOverlays(
 ): OverlayController {
   let progressionChoices: UpgradeChoice[] = [];
   let progressionBonusUnlocked = false;
+  let progressionMode: ProgressionMode = "upgrade";
   let progressionSelected: UpgradeChoice[] = [];
   let progressionWave = 0;
   let records: RunRecords = {
@@ -1010,17 +1014,35 @@ export function createOverlays(
       )
     );
 
-    betweenEyebrow.textContent = i18n.t("upgrade.eyebrow");
-    betweenHeading.main.textContent = i18n.t("upgrade.titleMain");
-    betweenHeading.accent.textContent = i18n.t("upgrade.titleAccent");
-    betweenCopy.textContent = progressionBonusUnlocked
-      ? i18n.t("upgrade.copyBonus")
-      : i18n.t("upgrade.copy");
-    upgradeTelemetry.textContent = i18n.t("summary.telemetry", {
-      chain: progressionSummary.bestCombo,
-      score: progressionSummary.score
-    });
-    upgradeBuild.textContent = renderBuildLineFromChoices(progressionSelected);
+    betweenEyebrow.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.eyebrow")
+        : i18n.t("upgrade.eyebrow");
+    betweenHeading.main.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.titleMain")
+        : i18n.t("upgrade.titleMain");
+    betweenHeading.accent.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.titleAccent")
+        : i18n.t("upgrade.titleAccent");
+    betweenCopy.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.copy")
+        : progressionBonusUnlocked
+          ? i18n.t("upgrade.copyBonus")
+          : i18n.t("upgrade.copy");
+    upgradeTelemetry.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.count", { count: progressionChoices.length })
+        : i18n.t("summary.telemetry", {
+            chain: progressionSummary.bestCombo,
+            score: progressionSummary.score
+          });
+    upgradeBuild.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.build")
+        : renderBuildLineFromChoices(progressionSelected);
 
     gameOverEyebrow.textContent = i18n.t("gameOver.eyebrow");
     gameOverHeading.main.textContent = i18n.t("gameOver.titleMain");
@@ -1064,18 +1086,53 @@ export function createOverlays(
   };
 
   const renderProgression = (): void => {
+    betweenWavesPanel.classList.toggle(
+      "is-opening-draft",
+      progressionMode === "opening-action"
+    );
+    upgradeGrid.classList.toggle(
+      "is-action-draft",
+      progressionMode === "opening-action"
+    );
+    betweenEyebrow.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.eyebrow")
+        : i18n.t("upgrade.eyebrow");
+    betweenHeading.main.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.titleMain")
+        : i18n.t("upgrade.titleMain");
+    betweenHeading.accent.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.titleAccent")
+        : i18n.t("upgrade.titleAccent");
+    betweenCopy.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.copy")
+        : progressionBonusUnlocked
+          ? i18n.t("upgrade.copyBonus")
+          : i18n.t("upgrade.copy");
     upgradeHistory.textContent =
-      progressionSelected.length === 0
-        ? i18n.t("upgrade.history.empty", { wave: progressionWave })
-        : i18n.t("upgrade.history.installed", {
-            modules: progressionSelected
-              .map((choice) => i18n.getUpgradeText(choice.id).title)
-              .join(" / ")
+      progressionMode === "opening-action"
+        ? i18n.t("opening.history")
+        : progressionSelected.length === 0
+          ? i18n.t("upgrade.history.empty", { wave: progressionWave })
+          : i18n.t("upgrade.history.installed", {
+              modules: progressionSelected
+                .map((choice) => i18n.getUpgradeText(choice.id).title)
+                .join(" / ")
+            });
+    upgradeTelemetry.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.count", { count: progressionChoices.length })
+        : i18n.t("summary.telemetry", {
+            chain: progressionSummary.bestCombo,
+            score: progressionSummary.score
           });
-    upgradeTelemetry.textContent = i18n.t("summary.telemetry", {
-      chain: progressionSummary.bestCombo,
-      score: progressionSummary.score
-    });
+    upgradeBuild.textContent =
+      progressionMode === "opening-action"
+        ? i18n.t("opening.build")
+        : renderBuildLineFromChoices(progressionSelected);
 
     upgradeGrid.replaceChildren(
       ...progressionChoices.map((choice, index) =>
@@ -1153,16 +1210,21 @@ export function createOverlays(
       selectedChoices,
       waveNumber,
       summary,
-      rescueBonusUnlocked
+      rescueBonusUnlocked,
+      mode = "upgrade"
     ) => {
       progressionChoices = choices;
       progressionBonusUnlocked = rescueBonusUnlocked;
+      progressionMode = mode;
       progressionSelected = selectedChoices;
       progressionWave = waveNumber;
       progressionSummary = summary;
-      betweenCopy.textContent = rescueBonusUnlocked
-        ? i18n.t("upgrade.copyBonus")
-        : i18n.t("upgrade.copy");
+      betweenCopy.textContent =
+        mode === "opening-action"
+          ? i18n.t("opening.copy")
+          : rescueBonusUnlocked
+            ? i18n.t("upgrade.copyBonus")
+            : i18n.t("upgrade.copy");
       renderProgression();
     },
     setRunSummary: (summary, highlights) => {
@@ -1312,7 +1374,9 @@ function createUpgradeCard(
 
   const kicker = document.createElement("span");
   kicker.className = "upgrade-kicker";
-  kicker.textContent = i18n.t("upgrade.option", { count: slotIndex + 1 });
+  kicker.textContent = `${i18n.t("upgrade.option", {
+    count: slotIndex + 1
+  })} / ${getChoiceTypeLabel(choice, i18n)}`;
 
   const title = document.createElement("span");
   title.className = "upgrade-title";
@@ -1337,6 +1401,19 @@ function createUpgradeCard(
   fitChip.className = "upgrade-chip is-fit";
   fitChip.textContent = getBuildFitLabel(choice.id, selectedChoices, i18n);
   tagRail.appendChild(fitChip);
+
+  const typeChip = document.createElement("span");
+  typeChip.className = isActionCardId(choice.id)
+    ? "upgrade-chip is-action-type"
+    : "upgrade-chip is-passive-type";
+  typeChip.textContent = isActionCardId(choice.id)
+    ? i18n.getLocale() === "es"
+      ? "<ACCION>"
+      : "<ACTION>"
+    : i18n.getLocale() === "es"
+      ? "<PASIVA>"
+      : "<PASSIVE>";
+  tagRail.appendChild(typeChip);
 
   if (choice.tier === "elite") {
     const chip = document.createElement("span");
@@ -1370,6 +1447,14 @@ function createUpgradeCard(
   return button;
 }
 
+function getChoiceTypeLabel(choice: UpgradeChoice, i18n: I18nController): string {
+  if (isActionCardId(choice.id)) {
+    return i18n.getLocale() === "es" ? "Accion" : "Action";
+  }
+
+  return i18n.getLocale() === "es" ? "Pasiva" : "Passive";
+}
+
 function getUpgradeCardClassName(
   choice: UpgradeChoice,
   archetypeTags: BuildArchetype[]
@@ -1379,6 +1464,8 @@ function getUpgradeCardClassName(
 
   if (isActionCardId(choice.id)) {
     classNames.push("is-action-card");
+  } else {
+    classNames.push("is-passive-card");
   }
 
   if (choice.tier === "elite") {

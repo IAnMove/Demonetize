@@ -4,6 +4,7 @@ export const GAME_CONFIG = {
   arenaHardLimit: 21,
   arenaCollisionRadius: 17.3,
   edgeDamagePerSecond: 20,
+  enemyDamageToPlayerMultiplier: 0.5,
   chapterTransitionWave: 5,
   finalWave: 13,
   maxEnemies: 48,

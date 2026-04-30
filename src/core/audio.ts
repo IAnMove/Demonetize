@@ -30,6 +30,200 @@ type AudioCue =
   | "upgrade-ready"
   | "victory";
 
+interface CueSample {
+  gain: number;
+  minIntervalMs?: number;
+  path: string;
+  playbackRate?: number;
+  rateVariance?: number;
+}
+
+interface LoopSample {
+  gain: number;
+  path: string;
+}
+
+const CUE_SAMPLES: Record<AudioCue, CueSample> = {
+  "ui-accept": {
+    gain: 0.42,
+    minIntervalMs: 70,
+    path: "/assets/audio/sfx/ui-accept.wav"
+  },
+  "shot-fired": {
+    gain: 0.24,
+    minIntervalMs: 42,
+    path: "/assets/audio/sfx/shot-fired.ogg",
+    rateVariance: 0.05
+  },
+  dash: {
+    gain: 0.28,
+    minIntervalMs: 120,
+    path: "/assets/audio/sfx/dash.wav",
+    playbackRate: 1.12,
+    rateVariance: 0.04
+  },
+  "combo-surge": {
+    gain: 0.2,
+    minIntervalMs: 260,
+    path: "/assets/audio/sfx/combo-surge.wav"
+  },
+  "artillery-lock-start": {
+    gain: 0.34,
+    minIntervalMs: 220,
+    path: "/assets/audio/sfx/artillery-lock-start.wav"
+  },
+  "artillery-impact": {
+    gain: 0.42,
+    minIntervalMs: 80,
+    path: "/assets/audio/sfx/artillery-impact.ogg",
+    playbackRate: 0.92,
+    rateVariance: 0.04
+  },
+  "relay-boost-start": {
+    gain: 0.22,
+    minIntervalMs: 260,
+    path: "/assets/audio/sfx/relay-boost-start.wav"
+  },
+  "elite-spawned": {
+    gain: 0.34,
+    minIntervalMs: 300,
+    path: "/assets/audio/sfx/elite-spawned.ogg",
+    playbackRate: 0.86,
+    rateVariance: 0.03
+  },
+  "elite-killed": {
+    gain: 0.3,
+    minIntervalMs: 160,
+    path: "/assets/audio/sfx/elite-killed.ogg",
+    playbackRate: 0.9,
+    rateVariance: 0.05
+  },
+  "elite-burst": {
+    gain: 0.44,
+    minIntervalMs: 140,
+    path: "/assets/audio/sfx/elite-burst.ogg",
+    playbackRate: 0.86,
+    rateVariance: 0.04
+  },
+  "enemy-fired": {
+    gain: 0.24,
+    minIntervalMs: 90,
+    path: "/assets/audio/sfx/enemy-fired.ogg",
+    playbackRate: 1.05,
+    rateVariance: 0.05
+  },
+  "arena-purge-start": {
+    gain: 0.36,
+    minIntervalMs: 360,
+    path: "/assets/audio/sfx/arena-purge-start.wav"
+  },
+  "legendary-ready": {
+    gain: 0.22,
+    minIntervalMs: 380,
+    path: "/assets/audio/sfx/record-best.wav"
+  },
+  "enemy-spawned": {
+    gain: 0.2,
+    minIntervalMs: 120,
+    path: "/assets/audio/sfx/enemy-spawned.ogg",
+    playbackRate: 1.15,
+    rateVariance: 0.06
+  },
+  "enemy-hit": {
+    gain: 0.22,
+    minIntervalMs: 38,
+    path: "/assets/audio/sfx/enemy-hit.ogg",
+    rateVariance: 0.1
+  },
+  "enemy-killed": {
+    gain: 0.28,
+    minIntervalMs: 75,
+    path: "/assets/audio/sfx/enemy-killed.ogg",
+    rateVariance: 0.08
+  },
+  "boss-spawned": {
+    gain: 0.3,
+    minIntervalMs: 600,
+    path: "/assets/audio/sfx/boss-spawned.wav",
+    playbackRate: 0.78
+  },
+  "boss-collapse-start": {
+    gain: 0.26,
+    minIntervalMs: 650,
+    path: "/assets/audio/sfx/boss-collapse-start.wav",
+    playbackRate: 0.82
+  },
+  "boss-core-exposed": {
+    gain: 0.24,
+    minIntervalMs: 500,
+    path: "/assets/audio/sfx/boss-core-exposed.wav",
+    playbackRate: 1.08
+  },
+  "boss-phase-pulse-start": {
+    gain: 0.26,
+    minIntervalMs: 420,
+    path: "/assets/audio/sfx/boss-phase-pulse-start.wav",
+    playbackRate: 0.9
+  },
+  "boss-phase-shift": {
+    gain: 0.4,
+    minIntervalMs: 500,
+    path: "/assets/audio/sfx/boss-phase-shift.ogg",
+    playbackRate: 0.76
+  },
+  "boss-defeated": {
+    gain: 0.2,
+    minIntervalMs: 900,
+    path: "/assets/audio/sfx/boss-defeated.wav"
+  },
+  "orb-collected": {
+    gain: 0.18,
+    minIntervalMs: 35,
+    path: "/assets/audio/sfx/orb-collected.ogg",
+    playbackRate: 1.22,
+    rateVariance: 0.12
+  },
+  "player-hit": {
+    gain: 0.34,
+    minIntervalMs: 180,
+    path: "/assets/audio/sfx/player-hit.ogg",
+    playbackRate: 0.82,
+    rateVariance: 0.04
+  },
+  "player-died": {
+    gain: 0.28,
+    minIntervalMs: 1200,
+    path: "/assets/audio/sfx/player-died.wav"
+  },
+  "record-best": {
+    gain: 0.22,
+    minIntervalMs: 500,
+    path: "/assets/audio/sfx/record-best.wav"
+  },
+  "upgrade-ready": {
+    gain: 0.32,
+    minIntervalMs: 260,
+    path: "/assets/audio/sfx/upgrade-ready.wav",
+    playbackRate: 1.08
+  },
+  victory: {
+    gain: 0.22,
+    minIntervalMs: 900,
+    path: "/assets/audio/sfx/victory.wav"
+  }
+};
+
+const LOOP_SAMPLES: LoopSample[] = [
+  {
+    gain: 0.12,
+    path: "/assets/audio/music/battle-theme.mp3"
+  },
+  {
+    gain: 0.04,
+    path: "/assets/audio/music/neon-ambience.ogg"
+  }
+];
+
 export interface AudioBus {
   dispatch: (events: FrameEvent[]) => void;
   playCue: (cue: AudioCue) => void;
@@ -52,14 +246,35 @@ export function createAudioBus(): AudioBus {
 
   const context = new AudioContextClass();
   const master = context.createGain();
-  master.gain.value = 0.082;
+  master.gain.value = 1;
   master.connect(context.destination);
 
+  const synthMaster = context.createGain();
+  synthMaster.gain.value = 0.082;
+  synthMaster.connect(master);
+
+  const sfxMaster = context.createGain();
+  sfxMaster.gain.value = 0.58;
+  sfxMaster.connect(master);
+
+  const musicMaster = context.createGain();
+  musicMaster.gain.value = 0.5;
+  musicMaster.connect(master);
+
+  const decodedBuffers = new Map<string, AudioBuffer>();
+  const pendingBufferLoads = new Map<string, Promise<AudioBuffer | null>>();
+  const failedBufferPaths = new Set<string>();
+  const lastCueTimes = new Map<AudioCue, number>();
+  const activeLoopPaths = new Set<string>();
   let enabled = false;
   let lastVerdictAt = -1000;
 
   const triggerCue = (cue: AudioCue): void => {
     if (!enabled) {
+      return;
+    }
+
+    if (playSample(cue)) {
       return;
     }
 
@@ -237,10 +452,130 @@ export function createAudioBus(): AudioBus {
     gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSeconds);
 
     oscillator.connect(gain);
-    gain.connect(master);
+    gain.connect(synthMaster);
 
     oscillator.start(now);
     oscillator.stop(now + durationSeconds + 0.02);
+  };
+
+  const loadAudioBuffer = (path: string): Promise<AudioBuffer | null> => {
+    const decodedBuffer = decodedBuffers.get(path);
+    if (decodedBuffer) {
+      return Promise.resolve(decodedBuffer);
+    }
+
+    if (failedBufferPaths.has(path)) {
+      return Promise.resolve(null);
+    }
+
+    const pendingLoad = pendingBufferLoads.get(path);
+    if (pendingLoad) {
+      return pendingLoad;
+    }
+
+    const load = fetch(path)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Audio asset failed to load: ${path}`);
+        }
+
+        return response.arrayBuffer();
+      })
+      .then((audioData) => context.decodeAudioData(audioData))
+      .then((buffer) => {
+        decodedBuffers.set(path, buffer);
+        pendingBufferLoads.delete(path);
+        return buffer;
+      })
+      .catch(() => {
+        pendingBufferLoads.delete(path);
+        failedBufferPaths.add(path);
+        return null;
+      });
+
+    pendingBufferLoads.set(path, load);
+    return load;
+  };
+
+  const preloadAudioAssets = (): void => {
+    for (const sample of Object.values(CUE_SAMPLES)) {
+      void loadAudioBuffer(sample.path);
+    }
+
+    for (const sample of LOOP_SAMPLES) {
+      void loadAudioBuffer(sample.path);
+    }
+  };
+
+  const playSample = (cue: AudioCue): boolean => {
+    const sample = CUE_SAMPLES[cue];
+    const nowMs = window.performance.now();
+    const minIntervalMs = sample.minIntervalMs ?? 0;
+    const lastPlayedAt = lastCueTimes.get(cue) ?? -Number.POSITIVE_INFINITY;
+
+    if (nowMs - lastPlayedAt < minIntervalMs) {
+      return true;
+    }
+
+    const buffer = decodedBuffers.get(sample.path);
+    if (!buffer) {
+      void loadAudioBuffer(sample.path);
+      return false;
+    }
+
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    const playbackRate =
+      (sample.playbackRate ?? 1) +
+      (sample.rateVariance ?? 0) * (Math.random() * 2 - 1);
+
+    source.buffer = buffer;
+    source.playbackRate.value = Math.max(0.25, playbackRate);
+    gain.gain.value = sample.gain;
+
+    source.connect(gain);
+    gain.connect(sfxMaster);
+    source.start();
+    lastCueTimes.set(cue, nowMs);
+
+    return true;
+  };
+
+  const startLoop = (sample: LoopSample): void => {
+    if (activeLoopPaths.has(sample.path)) {
+      return;
+    }
+
+    const buffer = decodedBuffers.get(sample.path);
+    if (!buffer) {
+      void loadAudioBuffer(sample.path).then(() => {
+        if (enabled) {
+          startLoop(sample);
+        }
+      });
+      return;
+    }
+
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.value = sample.gain;
+
+    source.connect(gain);
+    gain.connect(musicMaster);
+    source.start();
+    activeLoopPaths.add(sample.path);
+    source.onended = () => {
+      activeLoopPaths.delete(sample.path);
+    };
+  };
+
+  const startMusicLoops = (): void => {
+    for (const sample of LOOP_SAMPLES) {
+      startLoop(sample);
+    }
   };
 
   const playRoboticVerdict = (): void => {
@@ -280,6 +615,8 @@ export function createAudioBus(): AudioBus {
     window.speechSynthesis.speak(utterance);
   };
 
+  preloadAudioAssets();
+
   return {
     dispatch: (events) => {
       if (events.length === 0 || !enabled) {
@@ -309,8 +646,11 @@ export function createAudioBus(): AudioBus {
     prime: () => {
       enabled = true;
       if (context.state === "suspended") {
-        void context.resume();
+        void context.resume().then(startMusicLoops);
+        return;
       }
+
+      startMusicLoops();
     }
   };
 }

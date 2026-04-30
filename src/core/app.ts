@@ -22,7 +22,11 @@ import {
   type DebugBuildPresetId
 } from "../gameplay/session";
 import type { ActionCardId, UpgradeId } from "../gameplay/progression/upgrades";
-import { isActionCardId } from "../gameplay/progression/upgrades";
+import {
+  ACTION_CARD_IDS,
+  getUpgradeChoice,
+  isActionCardId
+} from "../gameplay/progression/upgrades";
 import { getBuildProfile } from "../gameplay/progression/builds";
 import { getWaveThemeId } from "../gameplay/waves/waveConfig";
 import type { PlayerDamageSourceKind } from "../gameplay/player/player";
@@ -98,6 +102,19 @@ export function createApp(rootElement: HTMLDivElement): void {
       }
     | null = null;
 
+  const openActionCardDraft = (): void => {
+    const openingView = getSessionSnapshot(session);
+    overlays.setProgression(
+      ACTION_CARD_IDS.map((cardId) => getUpgradeChoice(cardId)),
+      openingView.progression.selectedChoices,
+      0,
+      createRunSummary(openingView, [], usedActionCards),
+      false,
+      "opening-action"
+    );
+    stateMachine.transition("between-waves");
+  };
+
   hud = createHud(overlayLayer, i18n, {
     onUseActionCard: (instanceId, clientX, clientY) => {
       if (
@@ -150,7 +167,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     actionCardFreezeRemaining = 0;
     usedActionCards = [];
     resetGameSession(session);
-    stateMachine.transition("playing");
+    openActionCardDraft();
   };
 
   const restartRun = (): void => {
@@ -165,7 +182,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     actionCardFreezeRemaining = 0;
     usedActionCards = [];
     resetGameSession(session);
-    stateMachine.transition("playing");
+    openActionCardDraft();
   };
 
   const skipIntro = (): void => {

@@ -473,7 +473,7 @@ function createActionCardButton(
       button.classList.add("is-cast");
       window.setTimeout(() => {
         button.remove();
-      }, 180);
+      }, 340);
     } else {
       button.classList.add("is-returning");
       window.setTimeout(() => {

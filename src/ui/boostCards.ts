@@ -130,7 +130,7 @@ function getBoostCardTypeLabel(
   const isSpanish = i18n.getLocale() === "es";
 
   if (isActionCardId(choice.id)) {
-    return isSpanish ? "Activable" : "Action";
+    return isSpanish ? "Accion" : "Action";
   }
 
   if (choice.tier === "elite") {

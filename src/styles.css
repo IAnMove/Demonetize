@@ -614,6 +614,11 @@ button.intro-skip {
   margin-top: 0.8rem;
 }
 
+.upgrade-grid.is-action-draft {
+  grid-template-columns: repeat(3, minmax(12rem, 1fr));
+  align-items: stretch;
+}
+
 .upgrade-card {
   position: relative;
   overflow: hidden;
@@ -671,7 +676,46 @@ button.intro-skip {
   --upgrade-accent: #ffb84a;
   --upgrade-glow: rgba(255, 184, 74, 0.32);
   background:
+    radial-gradient(circle at 78% 14%, rgba(255, 100, 143, 0.28), transparent 32%),
+    radial-gradient(circle at 18% 18%, rgba(255, 184, 74, 0.24), transparent 30%),
     linear-gradient(180deg, rgba(23, 18, 38, 0.98), rgba(8, 10, 22, 0.98));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 184, 74, 0.2),
+    0 0 34px rgba(255, 184, 74, 0.18);
+}
+
+.upgrade-card.is-action-card::after {
+  content: "";
+  position: absolute;
+  inset: -18% -24% auto auto;
+  display: block;
+  width: 8rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 12%),
+    conic-gradient(
+      from 20deg,
+      transparent 0deg,
+      rgba(255, 184, 74, 0.28) 38deg,
+      transparent 82deg,
+      rgba(255, 100, 143, 0.22) 136deg,
+      transparent 210deg,
+      rgba(49, 245, 255, 0.18) 278deg,
+      transparent 360deg
+    );
+  filter: blur(0.2px);
+  opacity: 0.68;
+  pointer-events: none;
+}
+
+.upgrade-grid.is-action-draft .upgrade-card.is-action-card {
+  min-height: 23.5rem;
+  padding: 0.95rem;
+}
+
+.upgrade-grid.is-action-draft .upgrade-card-preview .boost-card-face.is-preview {
+  width: min(100%, 9.9rem);
 }
 
 .upgrade-card:hover {
@@ -812,6 +856,22 @@ button.intro-skip {
   box-shadow: inset 0 0 0 1px rgba(255, 184, 74, 0.2);
 }
 
+.upgrade-chip.is-action-type {
+  color: #130913;
+  background: linear-gradient(90deg, #ffb84a, #ff648f);
+  box-shadow:
+    0 0 16px rgba(255, 184, 74, 0.24),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+.upgrade-chip.is-passive-type {
+  color: #dffff3;
+  background: rgba(49, 245, 255, 0.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(49, 245, 255, 0.26),
+    0 0 12px rgba(49, 245, 255, 0.08);
+}
+
 .upgrade-chip.is-tradeoff {
   color: #ffe4ec;
   background: rgba(255, 91, 127, 0.12);
@@ -858,6 +918,15 @@ button.intro-skip {
 
 .boost-card-face.is-action {
   --boost-card-accent: #ffb84a;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.16), transparent 12%),
+    radial-gradient(circle at 34% 22%, rgba(255, 100, 143, 0.4), transparent 34%),
+    radial-gradient(circle at 68% 20%, rgba(49, 245, 255, 0.22), transparent 36%),
+    linear-gradient(180deg, rgba(42, 22, 48, 0.98), rgba(7, 8, 18, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(255, 184, 74, 0.24),
+    0 0 38px var(--boost-card-glow),
+    inset 0 0 24px rgba(255, 184, 74, 0.08);
 }
 
 .boost-card-face.is-legendary {
@@ -896,6 +965,25 @@ button.intro-skip {
   background-image: var(--boost-card-art);
   background-size: cover;
   background-position: center;
+}
+
+.boost-card-face.is-action .boost-card-art {
+  inset: 5% 7% 24%;
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 24px var(--boost-card-glow);
+}
+
+.boost-card-face.is-action .boost-card-frame {
+  opacity: 1;
+  filter:
+    drop-shadow(0 0 12px rgba(255, 184, 74, 0.46))
+    drop-shadow(0 0 20px rgba(255, 100, 143, 0.22));
+}
+
+.boost-card-face.is-action .boost-card-kicker {
+  color: #ffdc8f;
 }
 
 .boost-card-glyph {
@@ -1210,7 +1298,11 @@ button.action-card:focus-visible {
 
 button.action-card.is-dragging {
   z-index: 20;
-  filter: brightness(1.16) drop-shadow(0 0 18px rgba(49, 245, 255, 0.46));
+  filter:
+    brightness(1.2)
+    saturate(1.18)
+    drop-shadow(0 0 18px rgba(49, 245, 255, 0.46))
+    drop-shadow(0 0 30px rgba(255, 184, 74, 0.2));
   transition: none;
 }
 
@@ -1219,7 +1311,42 @@ button.action-card.is-returning {
 }
 
 button.action-card.is-cast {
-  animation: card-cast 180ms ease forwards;
+  z-index: 24;
+  animation: card-cast 340ms cubic-bezier(0.2, 0.95, 0.18, 1) forwards;
+  filter:
+    brightness(1.32)
+    saturate(1.32)
+    drop-shadow(0 0 22px rgba(255, 255, 255, 0.44))
+    drop-shadow(0 0 38px rgba(255, 100, 143, 0.36));
+}
+
+button.action-card.is-cast::before {
+  content: "";
+  position: absolute;
+  inset: -28%;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.76), transparent 19%),
+    conic-gradient(
+      from 18deg,
+      rgba(49, 245, 255, 0),
+      rgba(49, 245, 255, 0.55),
+      rgba(255, 184, 74, 0.64),
+      rgba(255, 100, 143, 0.58),
+      rgba(49, 245, 255, 0)
+    );
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.5) rotate(-18deg);
+  animation: action-card-cast-flare 340ms ease-out forwards;
+}
+
+button.action-card.is-cast .action-card-art {
+  animation: action-card-art-burn 340ms ease-out forwards;
+}
+
+button.action-card.is-cast .action-card-frame {
+  animation: action-card-frame-flare 340ms ease-out forwards;
 }
 
 .action-card-art,
@@ -1281,19 +1408,68 @@ button.action-card:focus-visible::after {
 }
 
 @keyframes card-cast {
-  from {
+  0% {
     opacity: 1;
     transform:
       translate(var(--drag-x), var(--drag-y))
       rotate(0deg)
       scale(1);
   }
-  to {
+  42% {
+    opacity: 1;
+    transform:
+      translate(var(--drag-x), calc(var(--drag-y) - 1.1rem))
+      rotate(-3deg)
+      scale(1.22);
+  }
+  100% {
     opacity: 0;
     transform:
-      translate(var(--drag-x), calc(var(--drag-y) - 2rem))
-      rotate(0deg)
-      scale(1.18);
+      translate(var(--drag-x), calc(var(--drag-y) - 4.1rem))
+      rotate(8deg)
+      scale(0.86);
+  }
+}
+
+@keyframes action-card-cast-flare {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-18deg);
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.75) rotate(28deg);
+  }
+}
+
+@keyframes action-card-art-burn {
+  0% {
+    filter: brightness(1) saturate(1);
+  }
+  45% {
+    filter: brightness(1.75) saturate(1.55);
+  }
+  100% {
+    filter: brightness(2.2) saturate(0.8);
+  }
+}
+
+@keyframes action-card-frame-flare {
+  0% {
+    filter: drop-shadow(0 0 11px rgba(49, 245, 255, 0.28));
+  }
+  45% {
+    filter:
+      drop-shadow(0 0 16px rgba(255, 255, 255, 0.86))
+      drop-shadow(0 0 30px rgba(255, 184, 74, 0.58));
+  }
+  100% {
+    filter:
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.24))
+      drop-shadow(0 0 24px rgba(255, 100, 143, 0.18));
   }
 }
 
@@ -1766,6 +1942,10 @@ button.action-card:focus-visible::after {
     overflow-x: auto;
     padding-bottom: 0.35rem;
     scroll-snap-type: x mandatory;
+  }
+
+  .upgrade-grid.is-action-draft {
+    grid-template-columns: none;
   }
 
   .upgrade-card {

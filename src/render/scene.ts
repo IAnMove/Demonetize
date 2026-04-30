@@ -127,6 +127,7 @@ interface EnemyView {
   avatarDisc: THREE.Mesh;
   avatarMaterial: THREE.MeshBasicMaterial;
   bodyMaterial: THREE.MeshStandardMaterial;
+  droneRotors: THREE.Group[];
   eliteHalo: THREE.Mesh;
   eliteHaloMaterial: THREE.MeshBasicMaterial;
   eliteSpikeMaterial: THREE.MeshBasicMaterial;
@@ -150,6 +151,15 @@ interface TelegraphView {
   leftRail: THREE.Mesh;
   railMaterial: THREE.MeshBasicMaterial;
   rightRail: THREE.Mesh;
+  root: THREE.Group;
+}
+
+interface SatelliteView {
+  dish: THREE.Mesh;
+  materials: Array<THREE.MeshBasicMaterial | THREE.MeshStandardMaterial>;
+  panelLeft: THREE.Mesh;
+  panelRight: THREE.Mesh;
+  ring: THREE.Mesh;
   root: THREE.Group;
 }
 
@@ -452,18 +462,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     return drone;
   });
 
-  const satelliteMeshes = Array.from({ length: 2 }, () => {
-    const material = createNeonMaterial("#ffb84a", 2.2);
-    material.transparent = true;
-    material.opacity = 0;
-    const satellite = new THREE.Mesh(
-      new THREE.BoxGeometry(0.48, 0.14, 0.22),
-      material
-    );
-    satellite.visible = false;
-    playerRoot.add(satellite);
-    return satellite;
-  });
+  const satelliteMeshes = Array.from({ length: 2 }, () =>
+    createSatelliteView(playerRoot)
+  );
   scene.add(playerRoot);
 
   const playerHealthBarRoot = new THREE.Group();
@@ -665,8 +666,8 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const dashEchoPool = Array.from({ length: 10 }, () =>
     createDashEchoView(dashEchoRoot)
   );
-  const decalPool = Array.from({ length: 20 }, () => createGroundDecal(decalRoot));
-  const particlePool = Array.from({ length: 72 }, () =>
+  const decalPool = Array.from({ length: 32 }, () => createGroundDecal(decalRoot));
+  const particlePool = Array.from({ length: 192 }, () =>
     createEffectParticle(particleRoot)
   );
   const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
@@ -1177,6 +1178,52 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     );
   };
 
+  const spawnCardCastRitual = (
+    position: Vec2Like,
+    colors: { core: string; primary: string; secondary: string },
+    intensity: number
+  ): void => {
+    emitParticleBurst(
+      position,
+      colors.core,
+      Math.round(18 * intensity),
+      4.6 * intensity,
+      0.7,
+      [0.08, 0.22]
+    );
+    emitParticleBurst(
+      position,
+      colors.primary,
+      Math.round(24 * intensity),
+      4.1 * intensity,
+      0.62,
+      [0.08, 0.2]
+    );
+    emitParticleBurst(
+      position,
+      colors.secondary,
+      Math.round(16 * intensity),
+      3.55 * intensity,
+      0.5,
+      [0.06, 0.18]
+    );
+
+    spawnGroundDecal(position, colors.core, 3.8 * intensity, 0.72, 0.2);
+    spawnGroundDecal(position, colors.primary, 6.6 * intensity, 1.08, 0.18);
+    spawnGroundDecal(position, colors.secondary, 9.2 * intensity, 1.32, 0.12);
+
+    const rayCount = reducedMotion ? 3 : 6;
+    for (let index = 0; index < rayCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / rayCount + Math.random() * 0.22;
+      spawnRangedTrace(
+        position,
+        { x: Math.sin(angle), y: Math.cos(angle) },
+        (2.5 + Math.random() * 1.35) * intensity,
+        "satellite"
+      );
+    }
+  };
+
   return {
     camera,
     emitEffects: (events) => {
@@ -1366,9 +1413,14 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             spawnGroundDecal(event.position, "#72ffd5", (event.span ?? 3.9) * 0.78, 0.54, 0.08);
             break;
           case "card-purge-cast":
-            cameraShake = Math.max(cameraShake, 0.36);
-            ritualPulse = 1.05;
-            chapterPulse = 0.95;
+            cameraShake = Math.max(cameraShake, 0.46);
+            ritualPulse = 1.28;
+            chapterPulse = 1.14;
+            spawnCardCastRitual(
+              event.position,
+              { core: "#ffffff", primary: "#ff648f", secondary: "#ff4fd8" },
+              1.35
+            );
             emitParticleBurst(
               event.position,
               "#ffffff",
@@ -1398,8 +1450,13 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             spawnGroundDecal(event.position, "#ff4fd8", 15.4, 1.5, 0.15);
             break;
           case "card-repair-cast":
-            cameraShake = Math.max(cameraShake, 0.12);
-            ritualPulse = Math.max(ritualPulse, 0.45);
+            cameraShake = Math.max(cameraShake, 0.2);
+            ritualPulse = Math.max(ritualPulse, 0.68);
+            spawnCardCastRitual(
+              event.position,
+              { core: "#ffffff", primary: "#72ffd5", secondary: "#31f5ff" },
+              0.92
+            );
             emitParticleBurst(
               event.position,
               "#72ffd5",
@@ -1420,8 +1477,14 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             spawnGroundDecal(event.position, "#31f5ff", 6.4, 1.14, 0.16);
             break;
           case "card-overcore-cast":
-            cameraShake = Math.max(cameraShake, 0.18);
-            ritualPulse = Math.max(ritualPulse, 0.62);
+            cameraShake = Math.max(cameraShake, 0.28);
+            ritualPulse = Math.max(ritualPulse, 0.82);
+            chapterPulse = Math.max(chapterPulse, 0.46);
+            spawnCardCastRitual(
+              event.position,
+              { core: "#fff0cb", primary: "#ffb84a", secondary: "#96ff47" },
+              1.05
+            );
             emitParticleBurst(
               event.position,
               "#ffb84a",
@@ -2231,25 +2294,40 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       }
       for (let index = 0; index < satelliteMeshes.length; index += 1) {
         const satellite = satelliteMeshes[index];
-        const material = satellite.material as THREE.MeshStandardMaterial;
         const visible = playerVisuals.satelliteLatticeCount > 0;
-        satellite.visible = visible;
-        material.opacity = visible ? 0.9 : 0;
+        satellite.root.visible = visible;
+        const materialOpacity = visible ? 0.9 : 0;
+        for (const material of satellite.materials) {
+          material.opacity = materialOpacity;
+        }
         if (!visible) {
           continue;
         }
 
         const angle = sceneTime * -1.2 + Math.PI * index;
-        satellite.position.set(
+        const pulse = Math.sin(sceneTime * 6 + index);
+        const firePulse = playerVisuals.shotPulse * 0.14;
+        satellite.root.position.set(
           Math.cos(angle) * 1.86,
-          0.48 + Math.sin(sceneTime * 4.4 + index) * 0.06,
+          0.56 + Math.sin(sceneTime * 4.4 + index) * 0.08,
           Math.sin(angle) * 1.86
         );
-        satellite.rotation.y = -angle + Math.PI * 0.5;
-        satellite.scale.setScalar(1 + Math.sin(sceneTime * 6 + index) * 0.06);
-        material.color.set("#ffb84a");
-        material.emissive.set("#ffb84a");
-        material.emissiveIntensity = 2.1 + playerVisuals.legendaryCount * 0.3;
+        satellite.root.rotation.y = -angle + Math.PI * 0.5;
+        satellite.root.rotation.z = Math.sin(sceneTime * 3.2 + index) * 0.1;
+        satellite.root.scale.setScalar(1 + pulse * 0.05 + firePulse);
+        satellite.panelLeft.rotation.z = -0.08 + Math.sin(sceneTime * 2.8 + index) * 0.04;
+        satellite.panelRight.rotation.z = 0.08 - Math.sin(sceneTime * 2.8 + index) * 0.04;
+        satellite.ring.rotation.y += renderDeltaSeconds * (2.6 + index * 0.4);
+        satellite.dish.rotation.x = -0.32 + Math.sin(sceneTime * 4 + index) * 0.08;
+        for (const material of satellite.materials) {
+          if (material instanceof THREE.MeshStandardMaterial) {
+            material.emissiveIntensity =
+              1.8 +
+              playerVisuals.legendaryCount * 0.32 +
+              playerVisuals.shotPulse * 0.75 +
+              (material === satellite.materials[1] ? 0.5 : 0);
+          }
+        }
       }
       reticle.scale.setScalar(1 + playerVisuals.shotPulse * 0.35);
       reticleMaterial.opacity = 0.7 + playerVisuals.dashReady * 0.25;
@@ -2694,6 +2772,13 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             exposedScalePulse *
             (enemy.mode === "dash" ? 1.08 : enemy.mode === "windup" ? 0.94 : 1)
         );
+        for (let rotorIndex = 0; rotorIndex < view.droneRotors.length; rotorIndex += 1) {
+          const rotor = view.droneRotors[rotorIndex];
+          rotor.rotation.y =
+            sceneTime * (enemy.mode === "dash" ? 54 : 34) *
+              (rotorIndex % 2 === 0 ? 1 : -1) +
+            enemy.id;
+        }
 
         view.bodyMaterial.color.set(
           enemy.damageFlash > 0.08 ? "#ffffff" : baseColor
@@ -3279,6 +3364,88 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   };
 }
 
+function createSatelliteView(parent: THREE.Group): SatelliteView {
+  const root = new THREE.Group();
+  root.visible = false;
+
+  const coreMaterial = createNeonMaterial("#ffb84a", 2.2);
+  const panelMaterial = createNeonMaterial("#31f5ff", 1.8);
+  const accentMaterial = createNeonMaterial("#fff0cb", 2.4);
+  for (const material of [coreMaterial, panelMaterial, accentMaterial]) {
+    material.transparent = true;
+    material.opacity = 0;
+  }
+
+  const signalMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#ffb84a",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+
+  const core = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.24, 0.54), coreMaterial);
+  core.position.y = 0.04;
+  root.add(core);
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.28, 8), accentMaterial);
+  nose.rotation.x = Math.PI / 2;
+  nose.position.set(0, 0.04, 0.38);
+  root.add(nose);
+
+  const panelLeft = new THREE.Mesh(
+    new THREE.BoxGeometry(0.62, 0.035, 0.34),
+    panelMaterial
+  );
+  panelLeft.position.set(-0.52, 0.04, 0);
+  root.add(panelLeft);
+
+  const panelRight = panelLeft.clone();
+  panelRight.position.x = 0.52;
+  root.add(panelRight);
+
+  const panelLeftStrut = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.05, 0.08),
+    accentMaterial
+  );
+  panelLeftStrut.position.set(-0.26, 0.04, 0);
+  root.add(panelLeftStrut);
+
+  const panelRightStrut = panelLeftStrut.clone();
+  panelRightStrut.position.x = 0.26;
+  root.add(panelRightStrut);
+
+  const dish = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.2, 18, 1, true), accentMaterial);
+  dish.position.set(0, 0.22, -0.28);
+  dish.rotation.x = -0.32;
+  root.add(dish);
+
+  const antenna = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.36, 0.045), accentMaterial);
+  antenna.position.set(0.16, 0.3, -0.12);
+  antenna.rotation.z = -0.22;
+  root.add(antenna);
+
+  const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), accentMaterial);
+  antennaTip.position.set(0.2, 0.49, -0.12);
+  root.add(antennaTip);
+
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.025, 8, 36), signalMaterial);
+  ring.rotation.x = Math.PI / 2;
+  root.add(ring);
+
+  parent.add(root);
+
+  return {
+    dish,
+    materials: [coreMaterial, panelMaterial, accentMaterial, signalMaterial],
+    panelLeft,
+    panelRight,
+    ring,
+    root
+  };
+}
+
 function createEnemyView(
   archetype: EnemyLike["archetype"],
   channelAvatarAtlas: THREE.Texture
@@ -3327,6 +3494,7 @@ function createEnemyView(
   avatarDisc.rotation.x = -Math.PI / 2;
   avatarDisc.position.y = archetype === "overseer" ? 1.28 : 1.08;
   avatarDisc.visible = false;
+  const droneRotors: THREE.Group[] = [];
 
   if (archetype === "charger") {
     const body = new THREE.Mesh(
@@ -3484,73 +3652,121 @@ function createEnemyView(
     );
     spine.position.set(0, 0.52, -0.06);
     root.add(spine);
+  } else if (archetype === "drone") {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.32, 1.02), bodyMaterial);
+    body.position.y = 0.46;
+    body.rotation.y = Math.PI / 4;
+    root.add(body);
+
+    const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 10), bodyMaterial);
+    canopy.position.set(0, 0.62, 0.06);
+    canopy.scale.set(1.12, 0.52, 0.86);
+    root.add(canopy);
+
+    const cameraLens = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), accentMaterial);
+    cameraLens.position.set(0, 0.54, 0.62);
+    cameraLens.scale.set(1.18, 0.86, 0.56);
+    root.add(cameraLens);
+
+    const crossArm = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.1, 0.12), accentMaterial);
+    crossArm.position.y = 0.48;
+    root.add(crossArm);
+
+    const foreArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 1.72), accentMaterial);
+    foreArm.position.y = 0.48;
+    root.add(foreArm);
+
+    const rotorOffsets = [
+      { x: -0.9, z: -0.72 },
+      { x: 0.9, z: -0.72 },
+      { x: -0.9, z: 0.72 },
+      { x: 0.9, z: 0.72 }
+    ];
+
+    for (const offset of rotorOffsets) {
+      const rotorGroup = new THREE.Group();
+      rotorGroup.position.set(offset.x, 0.5, offset.z);
+
+      const guard = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.035, 8, 22), accentMaterial);
+      guard.rotation.x = Math.PI / 2;
+      rotorGroup.add(guard);
+
+      const blades = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.028, 0.075), accentMaterial);
+      blades.position.y = 0.025;
+      rotorGroup.add(blades);
+
+      const crossBlades = blades.clone();
+      crossBlades.rotation.y = Math.PI / 2;
+      rotorGroup.add(crossBlades);
+
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.06, 10), bodyMaterial);
+      hub.position.y = 0.035;
+      rotorGroup.add(hub);
+
+      root.add(rotorGroup);
+      droneRotors.push(rotorGroup);
+    }
+
+    const antenna = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.48, 0.055), accentMaterial);
+    antenna.position.set(0.24, 0.94, -0.16);
+    antenna.rotation.z = -0.22;
+    root.add(antenna);
+
+    const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), accentMaterial);
+    antennaTip.position.set(0.3, 1.18, -0.16);
+    root.add(antennaTip);
   } else {
     const body = new THREE.Mesh(
-      new THREE.OctahedronGeometry(archetype === "overseer" ? 0.82 : 0.66, 0),
+      new THREE.OctahedronGeometry(0.82, 0),
       bodyMaterial
     );
     body.position.y = 0.48;
     root.add(body);
 
     const wing = new THREE.Mesh(
-      new THREE.BoxGeometry(archetype === "overseer" ? 1.68 : 1.18, 0.18, 0.28),
+      new THREE.BoxGeometry(1.68, 0.18, 0.28),
       accentMaterial
     );
     wing.position.set(0, 0.4, 0);
     root.add(wing);
 
     const eye = new THREE.Mesh(
-      new THREE.SphereGeometry(archetype === "overseer" ? 0.2 : 0.14, 12, 12),
+      new THREE.SphereGeometry(0.2, 12, 12),
       accentMaterial
     );
-    eye.position.set(0, 0.42, archetype === "overseer" ? 0.64 : 0.52);
+    eye.position.set(0, 0.42, 0.64);
     root.add(eye);
 
     const rearFin = new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, archetype === "overseer" ? 0.84 : 0.46, 0.8),
+      new THREE.BoxGeometry(0.18, 0.84, 0.8),
       accentMaterial
     );
-    rearFin.position.set(0, archetype === "overseer" ? 0.7 : 0.52, -0.08);
+    rearFin.position.set(0, 0.7, -0.08);
     root.add(rearFin);
 
-    if (archetype === "overseer") {
-      const crown = new THREE.Mesh(
-        new THREE.TorusGeometry(0.68, 0.09, 8, 24),
+    const crown = new THREE.Mesh(
+      new THREE.TorusGeometry(0.68, 0.09, 8, 24),
+      accentMaterial
+    );
+    crown.rotation.x = Math.PI / 2;
+    crown.position.y = 1.04;
+    root.add(crown);
+
+    const spine = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.9, 1.8),
+      bodyMaterial
+    );
+    spine.position.set(0, 0.52, 0);
+    root.add(spine);
+
+    for (let index = 0; index < 4; index += 1) {
+      const pylon = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.68, 0.18),
         accentMaterial
       );
-      crown.rotation.x = Math.PI / 2;
-      crown.position.y = 1.04;
-      root.add(crown);
-
-      const spine = new THREE.Mesh(
-        new THREE.BoxGeometry(0.28, 0.9, 1.8),
-        bodyMaterial
-      );
-      spine.position.set(0, 0.52, 0);
-      root.add(spine);
-
-      for (let index = 0; index < 4; index += 1) {
-        const pylon = new THREE.Mesh(
-          new THREE.BoxGeometry(0.18, 0.68, 0.18),
-          accentMaterial
-        );
-        const angle = (Math.PI / 2) * index + Math.PI / 4;
-        pylon.position.set(Math.cos(angle) * 0.72, 0.78, Math.sin(angle) * 0.72);
-        root.add(pylon);
-      }
-    } else {
-      const sideFin = new THREE.Mesh(
-        new THREE.BoxGeometry(0.18, 0.22, 0.72),
-        accentMaterial
-      );
-      sideFin.position.set(-0.42, 0.38, 0.04);
-      sideFin.rotation.z = -0.28;
-      root.add(sideFin);
-
-      const mirroredFin = sideFin.clone();
-      mirroredFin.position.x = 0.42;
-      mirroredFin.rotation.z = 0.28;
-      root.add(mirroredFin);
+      const angle = (Math.PI / 2) * index + Math.PI / 4;
+      pylon.position.set(Math.cos(angle) * 0.72, 0.78, Math.sin(angle) * 0.72);
+      root.add(pylon);
     }
   }
 
@@ -3654,6 +3870,7 @@ function createEnemyView(
     avatarDisc,
     avatarMaterial,
     bodyMaterial,
+    droneRotors,
     eliteHalo,
     eliteHaloMaterial,
     eliteSpikeMaterial,

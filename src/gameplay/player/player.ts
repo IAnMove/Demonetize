@@ -37,6 +37,19 @@ export interface PlayerDamageSource {
   position: Vec2 | null;
 }
 
+const ENEMY_DAMAGE_SOURCES: ReadonlySet<PlayerDamageSourceKind> = new Set([
+  "artillery",
+  "boss-beam",
+  "boss-pulse",
+  "charger",
+  "drone",
+  "elite-burst",
+  "overseer",
+  "purge",
+  "relay",
+  "sentry"
+]);
+
 export interface PlayerState {
   aim: Vec2;
   alive: boolean;
@@ -106,6 +119,14 @@ interface DamageOptions {
   knockbackSource?: Vec2;
   source?: PlayerDamageSourceKind;
   sourcePosition?: Vec2;
+}
+
+function getIncomingDamageMultiplier(
+  source: PlayerDamageSourceKind | undefined
+): number {
+  return source && ENEMY_DAMAGE_SOURCES.has(source)
+    ? GAME_CONFIG.enemyDamageToPlayerMultiplier
+    : 1;
 }
 
 export function createPlayer(): PlayerState {
@@ -303,8 +324,9 @@ export function applyDamage(
     return false;
   }
 
+  const scaledDamage = damage * getIncomingDamageMultiplier(options.source);
   const previousHealth = player.health;
-  player.health = clamp(player.health - damage, 0, player.maxHealth);
+  player.health = clamp(player.health - scaledDamage, 0, player.maxHealth);
   const appliedDamage = Math.max(0, previousHealth - player.health);
   player.lastDamageSource = options.source
     ? {
