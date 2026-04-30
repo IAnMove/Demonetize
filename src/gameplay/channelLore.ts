@@ -65,11 +65,22 @@ const CHANNEL_NAME_SUFFIXES = [
 
 export const CHANNEL_AVATAR_ATLAS_COLUMNS = 10;
 export const CHANNEL_AVATAR_ATLAS_ROWS = 10;
-export const CHANNEL_AVATAR_COUNT =
+export const CHANNEL_AVATAR_ATLAS_COUNT = 2;
+export const CHANNEL_AVATAR_ATLAS_SIZE =
   CHANNEL_AVATAR_ATLAS_COLUMNS * CHANNEL_AVATAR_ATLAS_ROWS;
+export const CHANNEL_AVATAR_COUNT =
+  CHANNEL_AVATAR_ATLAS_SIZE * CHANNEL_AVATAR_ATLAS_COUNT;
 
 export function getChannelAvatarIndex(seed: number): number {
   return hashSeed(seed, 41) % CHANNEL_AVATAR_COUNT;
+}
+
+export function getChannelAvatarAtlasIndex(avatarIndex: number): number {
+  return Math.floor(normalizeAvatarIndex(avatarIndex) / CHANNEL_AVATAR_ATLAS_SIZE);
+}
+
+export function getChannelAvatarCellIndex(avatarIndex: number): number {
+  return normalizeAvatarIndex(avatarIndex) % CHANNEL_AVATAR_ATLAS_SIZE;
 }
 
 export function getChannelName(seed: number): string {
@@ -91,6 +102,13 @@ export function getChannelName(seed: number): string {
     default:
       return `${prefix} ${topic}`;
   }
+}
+
+function normalizeAvatarIndex(avatarIndex: number): number {
+  return (
+    ((avatarIndex % CHANNEL_AVATAR_COUNT) + CHANNEL_AVATAR_COUNT) %
+    CHANNEL_AVATAR_COUNT
+  );
 }
 
 function hashSeed(seed: number, salt: number): number {

@@ -5,6 +5,7 @@ import {
 } from "../gameplay/session";
 import { UPGRADE_POOL } from "../gameplay/progression/upgradeConfig";
 import type { UpgradeId } from "../gameplay/progression/upgrades";
+import type { EnemyAvatarMode } from "../render/scene";
 
 interface DebugPanelHandlers {
   onApplyPreset: (presetId: DebugBuildPresetId) => void;
@@ -13,6 +14,7 @@ interface DebugPanelHandlers {
   onForceVictory: () => void;
   onPreviewEnemyDeaths: () => void;
   onGrantUpgrade: (upgradeId: UpgradeId, count: number) => void;
+  onSetEnemyAvatarMode: (mode: EnemyAvatarMode) => void;
   onSetSeed: (seed: string) => void;
   onUseLiveRandom: () => void;
 }
@@ -126,6 +128,30 @@ export function createDebugPanel(
 
   outcomeControls.append(forceLossButton, forceWinButton, enemyFxButton);
 
+  const avatarControls = document.createElement("div");
+  avatarControls.className = "debug-panel-section";
+  avatarControls.appendChild(createDebugLabel("Channel avatars"));
+
+  const avatarTopButton = createDebugButton("Top");
+  avatarTopButton.addEventListener("click", () => {
+    handlers.onSetEnemyAvatarMode("top");
+    setStatus("Channel avatars: vertical over enemies.");
+  });
+
+  const avatarFloorButton = createDebugButton("Floor");
+  avatarFloorButton.addEventListener("click", () => {
+    handlers.onSetEnemyAvatarMode("floor");
+    setStatus("Channel avatars: floor under enemies.");
+  });
+
+  const avatarOffButton = createDebugButton("Off");
+  avatarOffButton.addEventListener("click", () => {
+    handlers.onSetEnemyAvatarMode("hidden");
+    setStatus("Channel avatars: hidden until deletion.");
+  });
+
+  avatarControls.append(avatarTopButton, avatarFloorButton, avatarOffButton);
+
   const grantControls = document.createElement("div");
   grantControls.className = "debug-panel-section is-wide";
   grantControls.appendChild(createDebugLabel("Grant boost"));
@@ -177,6 +203,7 @@ export function createDebugPanel(
     presets,
     waveControls,
     outcomeControls,
+    avatarControls,
     grantControls,
     help
   );

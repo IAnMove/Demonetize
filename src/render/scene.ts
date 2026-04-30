@@ -3,6 +3,8 @@ import { GAME_CONFIG } from "../core/config";
 import {
   CHANNEL_AVATAR_ATLAS_COLUMNS,
   CHANNEL_AVATAR_ATLAS_ROWS,
+  getChannelAvatarAtlasIndex,
+  getChannelAvatarCellIndex,
   getChannelAvatarIndex
 } from "../gameplay/channelLore";
 import type { FrameEvent } from "../gameplay/events";
@@ -83,6 +85,7 @@ type PlayerVisuals = {
     | "zero-point-capacitor"
     | null;
 };
+export type EnemyAvatarMode = "floor" | "hidden" | "top";
 
 const UP_VECTOR = new THREE.Vector3(0, 1, 0);
 const GROUND_PLANE = new THREE.Plane(UP_VECTOR, 0);
@@ -105,6 +108,7 @@ export interface GameScene {
   setBossPulses: (pulses: BossPulseLike[]) => void;
   setArenaPurgeLanes: (purges: ArenaPurgeLike[]) => void;
   setAimPoint: (aimPoint: Vec2Like | null) => void;
+  setEnemyAvatarMode: (mode: EnemyAvatarMode) => void;
   setEnemies: (enemies: EnemyLike[]) => void;
   setPickups: (pickups: PickupLike[]) => void;
   setPlayerPose: (position: Vec2Like, facing: Vec2Like) => void;
@@ -281,13 +285,18 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const chapterHotMagenta = new THREE.Color("#ff7d64");
   const chapterColdCyan = new THREE.Color("#31f5ff");
   const chapterHotCyan = new THREE.Color("#ffb347");
-  const channelAvatarAtlas = new THREE.TextureLoader().load(
-    "/avatars/channel-avatars.jpg"
-  );
-  channelAvatarAtlas.colorSpace = THREE.SRGBColorSpace;
-  channelAvatarAtlas.wrapS = THREE.ClampToEdgeWrapping;
-  channelAvatarAtlas.wrapT = THREE.ClampToEdgeWrapping;
-  channelAvatarAtlas.anisotropy = 4;
+  const loadChannelAvatarAtlas = (path: string): THREE.Texture => {
+    const texture = new THREE.TextureLoader().load(path);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.anisotropy = 4;
+    return texture;
+  };
+  const channelAvatarAtlases: [THREE.Texture, THREE.Texture] = [
+    loadChannelAvatarAtlas("/avatars/channel-avatars.jpg"),
+    loadChannelAvatarAtlas("/avatars/channel-avatars-2.jpg")
+  ];
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -662,7 +671,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   );
   const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
   const channelObituaryPool = Array.from({ length: 14 }, () =>
-    createChannelObituaryView(channelObituaryRoot, channelAvatarAtlas)
+    createChannelObituaryView(channelObituaryRoot, channelAvatarAtlases[0])
   );
   const playerDebrisPool = createPlayerDebrisPool(playerDebrisRoot);
   let arenaDangerLevel = 0;
@@ -671,6 +680,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   let arenaBreachPulse = 0;
   let cameraShake = 0;
   let chapterPulse = 0;
+  let enemyAvatarMode: EnemyAvatarMode = "top";
   let reducedMotion = false;
   let dashEchoCooldown = 0;
   let playerDestructionTime = 0;
@@ -700,7 +710,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       return pooledView;
     }
 
-    const nextView = createEnemyView(archetype, channelAvatarAtlas);
+    const nextView = createEnemyView(archetype, channelAvatarAtlases[0]);
     enemyRoot.add(nextView.root);
     return nextView;
   };
@@ -940,7 +950,12 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     obituary.avatarMaterial.opacity = 1;
     obituary.labelMaterial.opacity = 1;
     obituary.ringMaterial.opacity = 0.74;
-    updateChannelAvatarGeometryUv(obituary.avatar.geometry, event.channelAvatarIndex);
+    applyChannelAvatar(
+      obituary.avatar,
+      obituary.avatarMaterial,
+      channelAvatarAtlases,
+      event.channelAvatarIndex
+    );
     drawChannelObituaryLabel(obituary, event.channelName);
   };
 
@@ -2571,6 +2586,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       reticle.visible = true;
       reticle.position.set(aimPoint.x, 0.03, aimPoint.y);
     },
+    setEnemyAvatarMode: (mode) => {
+      enemyAvatarMode = mode;
+    },
     setEnemies: (enemies) => {
       activeEnemyIds.clear();
 
@@ -2707,31 +2725,19 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             : enemy.mode === "windup" || enemy.mode === "aim"
               ? 2.1
               : 1.2;
-        const avatarVisible = enemy.archetype !== "overseer";
+        const avatarVisible = enemy.archetype !== "overseer" && enemyAvatarMode !== "hidden";
         view.avatarDisc.visible = avatarVisible;
         if (avatarVisible) {
           if (view.avatarDisc.userData.avatarSeed !== enemy.id) {
-            updateChannelAvatarGeometryUv(
-              view.avatarDisc.geometry,
+            applyChannelAvatar(
+              view.avatarDisc,
+              view.avatarMaterial,
+              channelAvatarAtlases,
               getChannelAvatarIndex(enemy.id)
             );
             view.avatarDisc.userData.avatarSeed = enemy.id;
           }
-          view.avatarDisc.position.y =
-            enemy.archetype === "charger"
-              ? 1.02
-              : enemy.archetype === "artillery"
-                ? 1.12
-              : enemy.archetype === "relay"
-                ? 1.14
-              : 1.08;
-          view.avatarDisc.scale.setScalar(
-            (enemy.archetype === "charger" ? 1.08 : 1.18) *
-              (enemy.isElite ? 1.08 : 1) *
-              (enemy.damageFlash > 0.08 ? 1.08 : 1)
-          );
-          view.avatarDisc.rotation.z =
-            Math.sin(sceneTime * 0.9 + enemy.id * 0.33) * 0.09;
+          updateEnemyAvatarDisc(view, enemy, enemyAvatarMode, camera, sceneTime);
           view.avatarMaterial.opacity = 1;
         }
         view.attackBeacon.visible = isAttackState || enemy.mode === "exposed";
@@ -3772,6 +3778,64 @@ function fitCanvasText(
     trimmed = trimmed.slice(0, -1);
   }
   return `${trimmed}...`;
+}
+
+function applyChannelAvatar(
+  mesh: THREE.Mesh,
+  material: THREE.MeshBasicMaterial,
+  atlases: readonly THREE.Texture[],
+  avatarIndex: number
+): void {
+  const atlasIndex = getChannelAvatarAtlasIndex(avatarIndex);
+  const atlas = atlases[atlasIndex] ?? atlases[0] ?? null;
+  if (material.map !== atlas) {
+    material.map = atlas;
+    material.needsUpdate = true;
+  }
+  updateChannelAvatarGeometryUv(mesh.geometry, getChannelAvatarCellIndex(avatarIndex));
+}
+
+function updateEnemyAvatarDisc(
+  view: EnemyView,
+  enemy: EnemyLike,
+  mode: EnemyAvatarMode,
+  camera: THREE.PerspectiveCamera,
+  sceneTime: number
+): void {
+  if (mode === "floor") {
+    view.avatarDisc.position.y = Math.max(0.045 - view.root.position.y, 0.025);
+    view.avatarDisc.rotation.x = -Math.PI / 2;
+    view.avatarDisc.rotation.y = 0;
+    view.avatarDisc.rotation.z =
+      Math.sin(sceneTime + enemy.id * 0.33) * 0.06;
+    view.avatarDisc.scale.setScalar(
+      (enemy.archetype === "charger" ? 1.22 : 1.36) *
+        (enemy.isElite ? 1.08 : 1)
+    );
+    return;
+  }
+
+  view.avatarDisc.position.y =
+    enemy.archetype === "charger"
+      ? 1.12
+      : enemy.archetype === "artillery"
+        ? 1.24
+        : enemy.archetype === "relay"
+          ? 1.24
+          : 1.18;
+  view.avatarDisc.rotation.x = 0;
+  view.avatarDisc.rotation.y =
+    Math.atan2(
+      camera.position.x - view.root.position.x,
+      camera.position.z - view.root.position.z
+    ) - view.root.rotation.y;
+  view.avatarDisc.rotation.z =
+    Math.sin(sceneTime + enemy.id * 0.33) * 0.06;
+  view.avatarDisc.scale.setScalar(
+    (enemy.archetype === "charger" ? 0.92 : 1) *
+      (enemy.isElite ? 1.08 : 1) *
+      (enemy.damageFlash > 0.08 ? 1.08 : 1)
+  );
 }
 
 function updateChannelAvatarGeometryUv(

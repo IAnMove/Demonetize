@@ -34,6 +34,7 @@ const i18nSource = readProjectFile("src/core/i18n.ts");
 const playerSource = readProjectFile("src/gameplay/player/player.ts");
 const enemySource = readProjectFile("src/gameplay/enemies/enemies.ts");
 const runRecordsSource = readProjectFile("src/core/runRecords.ts");
+const debugPanelSource = readProjectFile("src/ui/debugPanel.ts");
 const overlaySource = readProjectFile("src/ui/overlays.ts");
 const sceneSource = readProjectFile("src/render/scene.ts");
 const stateMachineSource = readProjectFile("src/core/stateMachine.ts");
@@ -120,9 +121,13 @@ assert(
 );
 assert(
   statSync(join(projectRoot, "public/avatars/channel-avatars.jpg")).size < 500_000 &&
+    statSync(join(projectRoot, "public/avatars/channel-avatars-2.jpg")).size < 500_000 &&
+    channelLoreSource.includes("CHANNEL_AVATAR_ATLAS_COUNT = 2") &&
+    channelLoreSource.includes("getChannelAvatarAtlasIndex") &&
     channelLoreSource.includes("getChannelName") &&
     channelLoreSource.includes("CHANNEL_AVATAR_ATLAS_COLUMNS") &&
     sceneSource.includes("/avatars/channel-avatars.jpg") &&
+    sceneSource.includes("/avatars/channel-avatars-2.jpg") &&
     sceneSource.includes("updateChannelAvatarGeometryUv"),
   "Channel avatar atlas should be optimized and rendered on enemy views."
 );
@@ -140,6 +145,16 @@ assert(
     sceneSource.includes("drawChannelObituaryLabel") &&
     i18nSource.includes("INAUTHENTIC CONTENT"),
   "Channel kills should render a red obituary marker with the exact inauthentic-content verdict."
+);
+assert(
+  sceneSource.includes('EnemyAvatarMode = "floor" | "hidden" | "top"') &&
+    sceneSource.includes("setEnemyAvatarMode") &&
+    sceneSource.includes("updateEnemyAvatarDisc") &&
+    appSource.includes("onSetEnemyAvatarMode") &&
+    debugPanelSource.includes("Channel avatars") &&
+    debugPanelSource.includes('"floor"') &&
+    debugPanelSource.includes('"hidden"'),
+  "DEV runtime should expose top/floor/hidden living-channel avatar comparison modes."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

@@ -26,7 +26,7 @@ import { isActionCardId } from "../gameplay/progression/upgrades";
 import { getBuildProfile } from "../gameplay/progression/builds";
 import { getWaveThemeId } from "../gameplay/waves/waveConfig";
 import type { PlayerDamageSourceKind } from "../gameplay/player/player";
-import { createGameScene } from "../render/scene";
+import { createGameScene, type EnemyAvatarMode } from "../render/scene";
 import { createDebugPanel } from "../ui/debugPanel";
 import { createHud } from "../ui/hud";
 import { createOverlays } from "../ui/overlays";
@@ -345,6 +345,11 @@ export function createApp(rootElement: HTMLDivElement): void {
     applyFrameFeedback(hud, frameEvents, i18n);
   };
 
+  const setEnemyAvatarMode = (mode: EnemyAvatarMode): void => {
+    scene.setEnemyAvatarMode(mode);
+    hud.notify(`Channel avatars: ${mode}`, "system");
+  };
+
   const debugPanel = import.meta.env.DEV
     ? createDebugPanel(overlayLayer, {
         onApplyPreset: applyDebugPreset,
@@ -353,6 +358,7 @@ export function createApp(rootElement: HTMLDivElement): void {
         onForceVictory: forceDebugVictory,
         onPreviewEnemyDeaths: previewEnemyDeathEffects,
         onGrantUpgrade: grantDebugUpgrade,
+        onSetEnemyAvatarMode: setEnemyAvatarMode,
         onSetSeed: setDebugSeed,
         onUseLiveRandom: useLiveRandom
       })
