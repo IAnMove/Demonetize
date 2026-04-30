@@ -31,6 +31,7 @@ const configSource = readProjectFile("src/core/config.ts");
 const i18nSource = readProjectFile("src/core/i18n.ts");
 const playerSource = readProjectFile("src/gameplay/player/player.ts");
 const enemySource = readProjectFile("src/gameplay/enemies/enemies.ts");
+const runRecordsSource = readProjectFile("src/core/runRecords.ts");
 const overlaySource = readProjectFile("src/ui/overlays.ts");
 const sceneSource = readProjectFile("src/render/scene.ts");
 const stateMachineSource = readProjectFile("src/core/stateMachine.ts");
@@ -107,6 +108,13 @@ assert(
     enemySource.includes("source: enemy.archetype") &&
     appSource.includes('type RunLossReason = PlayerDamageSourceKind | "overrun"'),
   "Enemy and boss damage should record exact loss sources."
+);
+assert(
+  runRecordsSource.includes("selectedChoiceIds") &&
+    runRecordsSource.includes("usedActionCards") &&
+    overlaySource.includes("createSummaryFromLastRun") &&
+    overlaySource.includes("titleLastRunBuild"),
+  "Run records should persist and render the previous build recap."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

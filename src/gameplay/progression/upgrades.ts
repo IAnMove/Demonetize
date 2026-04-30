@@ -103,6 +103,13 @@ export function isActionCardId(upgradeId: UpgradeId): upgradeId is ActionCardId 
   return (ACTION_CARD_IDS as readonly string[]).includes(upgradeId);
 }
 
+export function isUpgradeId(value: unknown): value is UpgradeId {
+  return (
+    typeof value === "string" &&
+    UPGRADE_POOL.some((choice) => choice.id === value)
+  );
+}
+
 export function getUpgradeStackLimit(upgradeId: UpgradeId): number {
   return STACK_LIMITS[upgradeId] ?? 1;
 }

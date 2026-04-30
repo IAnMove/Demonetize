@@ -8,6 +8,7 @@ import {
   type BuildArchetype
 } from "../gameplay/progression/builds";
 import {
+  getUpgradeChoice,
   isActionCardId,
   type ActionCardId,
   type UpgradeChoice,
@@ -214,6 +215,8 @@ export function createOverlays(
   titleLastRunLabel.className = "micro-copy";
   const titleLastRun = document.createElement("p");
   titleLastRun.className = "micro-copy";
+  const titleLastRunBuild = document.createElement("p");
+  titleLastRunBuild.className = "run-support";
   const titleStats = document.createElement("div");
   titleStats.className = "run-metric-grid is-title";
   const titleRunsCard = createRunMetricCard();
@@ -244,7 +247,12 @@ export function createOverlays(
     titleHeading.root,
     titleCopy,
     titleStats,
+    titleLastRunLabel,
+    titleLastRun,
+    titleLastRunBuild,
+    titleGoalLabel,
     titleGoal,
+    titleGoalSupport,
     titleActions
   );
   titleScreen.appendChild(titlePanel);
@@ -571,6 +579,31 @@ export function createOverlays(
       score: lastRun.score,
       wave: lastRun.waveNumber
     });
+  };
+
+  const createSummaryFromLastRun = (lastRun: LastRunRecord): RunSummary => ({
+    bestCombo: lastRun.bestCombo,
+    bestRescueStreak: 0,
+    chapter: lastRun.chapter,
+    elapsedSeconds: lastRun.elapsedSeconds,
+    lostRescueCount: 0,
+    rank: lastRun.rank,
+    rescuedCount: 0,
+    score: lastRun.score,
+    selectedChoices: (lastRun.selectedChoiceIds ?? []).map(getUpgradeChoice),
+    usedActionCards: [...(lastRun.usedActionCards ?? [])],
+    waveNumber: lastRun.waveNumber
+  });
+
+  const renderLastRunBuildLine = (): string =>
+    records.lastRun && (records.lastRun.selectedChoiceIds?.length ?? 0) > 0
+      ? renderBuildLine(createSummaryFromLastRun(records.lastRun))
+      : "";
+
+  const updateTitleLastRunBuild = (): void => {
+    const line = renderLastRunBuildLine();
+    titleLastRunBuild.textContent = line;
+    titleLastRunBuild.hidden = line.length === 0;
   };
 
   const renderTitleStats = (): void => {
@@ -930,22 +963,11 @@ export function createOverlays(
     titleRecords.textContent = renderRecordsLine();
     titleLastRunLabel.textContent = i18n.t("records.lastRunLabel");
     titleLastRun.textContent = renderLastRunLine();
+    updateTitleLastRunBuild();
     renderTitleStats();
     titleGoalLabel.textContent = i18n.t("summary.nextGoal");
     const titleGoalCopy = renderNextGoal(records.lastRun
-      ? {
-            bestCombo: records.lastRun.bestCombo,
-            bestRescueStreak: 0,
-            chapter: records.lastRun.chapter,
-            elapsedSeconds: records.lastRun.elapsedSeconds,
-            lostRescueCount: 0,
-          rank: records.lastRun.rank,
-          rescuedCount: 0,
-          score: records.lastRun.score,
-          selectedChoices: [],
-          usedActionCards: [],
-          waveNumber: records.lastRun.waveNumber
-        }
+      ? createSummaryFromLastRun(records.lastRun)
       : null);
     titleGoal.textContent = titleGoalCopy.primary;
     titleGoalSupport.textContent = titleGoalCopy.secondary;
@@ -1078,21 +1100,10 @@ export function createOverlays(
       records = nextRecords;
       titleRecords.textContent = renderRecordsLine();
       titleLastRun.textContent = renderLastRunLine();
+      updateTitleLastRunBuild();
       renderTitleStats();
       const titleGoalCopy = renderNextGoal(records.lastRun
-        ? {
-            bestCombo: records.lastRun.bestCombo,
-            bestRescueStreak: 0,
-            chapter: records.lastRun.chapter,
-            elapsedSeconds: records.lastRun.elapsedSeconds,
-            lostRescueCount: 0,
-            rank: records.lastRun.rank,
-            rescuedCount: 0,
-            score: records.lastRun.score,
-            selectedChoices: [],
-            usedActionCards: [],
-            waveNumber: records.lastRun.waveNumber
-          }
+        ? createSummaryFromLastRun(records.lastRun)
         : null);
       titleGoal.textContent = titleGoalCopy.primary;
       titleGoalSupport.textContent = titleGoalCopy.secondary;

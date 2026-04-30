@@ -25,7 +25,8 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
-  background:
+  background-color: #050811;
+  background-image:
     radial-gradient(circle at top, rgba(49, 245, 255, 0.16), transparent 28%),
     radial-gradient(circle at bottom, rgba(255, 79, 216, 0.18), transparent 24%),
     linear-gradient(180deg, #090b15 0%, #03040a 100%);

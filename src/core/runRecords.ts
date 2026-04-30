@@ -1,3 +1,10 @@
+import {
+  isActionCardId,
+  isUpgradeId,
+  type ActionCardId,
+  type UpgradeId
+} from "../gameplay/progression/upgrades";
+
 export type RunRank = "a" | "b" | "c" | "d" | "s";
 
 export interface RunSummaryRecord {
@@ -6,6 +13,8 @@ export interface RunSummaryRecord {
   elapsedSeconds: number;
   rank: RunRank;
   score: number;
+  selectedChoiceIds?: UpgradeId[];
+  usedActionCards?: ActionCardId[];
   waveNumber: number;
 }
 
@@ -103,6 +112,8 @@ export function recordRunResult(
       elapsedSeconds: summary.elapsedSeconds,
       rank: summary.rank,
       score: summary.score,
+      selectedChoiceIds: normalizeUpgradeIds(summary.selectedChoiceIds),
+      usedActionCards: normalizeActionCardIds(summary.usedActionCards),
       waveNumber: summary.waveNumber
     },
     totalRuns: current.totalRuns + 1,
@@ -156,8 +167,22 @@ function parseLastRun(value: unknown): LastRunRecord | null {
     elapsedSeconds: Math.max(0, parsed.elapsedSeconds),
     rank: parsed.rank,
     score: Math.max(0, parsed.score),
+    selectedChoiceIds: normalizeUpgradeIds(parsed.selectedChoiceIds),
+    usedActionCards: normalizeActionCardIds(parsed.usedActionCards),
     waveNumber: Math.max(0, parsed.waveNumber)
   };
+}
+
+function normalizeUpgradeIds(value: unknown): UpgradeId[] {
+  return Array.isArray(value) ? value.filter(isUpgradeId) : [];
+}
+
+function normalizeActionCardIds(value: unknown): ActionCardId[] {
+  return Array.isArray(value)
+    ? value.filter((upgradeId): upgradeId is ActionCardId =>
+        isUpgradeId(upgradeId) && isActionCardId(upgradeId)
+      )
+    : [];
 }
 
 function getRankWeight(rank: RunRank): number {

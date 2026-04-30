@@ -42,6 +42,7 @@ interface RunSummary {
   rank: "a" | "b" | "c" | "d" | "s";
   rescuedCount: number;
   score: number;
+  selectedChoiceIds: UpgradeId[];
   selectedChoices: ReturnType<typeof getSessionSnapshot>["progression"]["selectedChoices"];
   usedActionCards: ActionCardId[];
   waveNumber: number;
@@ -838,6 +839,7 @@ function createRunSummary(
     rank: getRunRank(view),
     rescuedCount: view.rescuedCount,
     score: view.score,
+    selectedChoiceIds: view.progression.selectedChoices.map((choice) => choice.id),
     selectedChoices: view.progression.selectedChoices,
     usedActionCards: [...usedActionCards],
     waveNumber: view.wave.currentWave
