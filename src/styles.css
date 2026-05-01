@@ -25,6 +25,7 @@ body,
   height: 100%;
   margin: 0;
   overflow: hidden;
+  overscroll-behavior: none;
   background-color: #050811;
   background-image:
     radial-gradient(circle at top, rgba(49, 245, 255, 0.16), transparent 28%),
@@ -34,7 +35,9 @@ body,
 }
 
 body {
+  touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 button {
@@ -81,6 +84,10 @@ button:active {
   inset: 0;
 }
 
+.scene-layer {
+  touch-action: none;
+}
+
 .scene-layer canvas {
   display: block;
   width: 100%;
@@ -89,6 +96,155 @@ button:active {
 
 .overlay-layer {
   pointer-events: none;
+}
+
+.mobile-controls {
+  --mobile-control-size: clamp(5rem, 18vw, 6.3rem);
+  --mobile-control-bottom: calc(
+    env(safe-area-inset-bottom, 0px) + clamp(9.8rem, 25vh, 15.4rem)
+  );
+  --mobile-control-side: calc(env(safe-area-inset-left, 0px) + 4.25rem);
+  --mobile-control-side-right: calc(env(safe-area-inset-right, 0px) + 4.25rem);
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: none;
+  pointer-events: none;
+}
+
+.mobile-stick,
+.mobile-aim-pad {
+  position: absolute;
+  bottom: var(--mobile-control-bottom);
+  width: var(--mobile-control-size);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.09), transparent 39%),
+    radial-gradient(circle at center, rgba(49, 245, 255, 0.11), transparent 67%),
+    rgba(5, 10, 22, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 22px rgba(49, 245, 255, 0.16);
+  opacity: 0.62;
+  transform: translateX(-50%);
+  transition:
+    border-color 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+  touch-action: none;
+}
+
+.mobile-stick {
+  left: var(--mobile-control-side);
+}
+
+.mobile-aim-pad {
+  right: var(--mobile-control-side-right);
+  border-color: rgba(255, 184, 74, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 22px rgba(255, 184, 74, 0.14);
+  transform: translateX(50%);
+}
+
+.mobile-stick.is-active,
+.mobile-aim-pad.is-active {
+  opacity: 0.92;
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.mobile-stick-knob,
+.mobile-aim-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--mobile-control-size) * 0.38);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.82), transparent 18%),
+    linear-gradient(135deg, rgba(49, 245, 255, 0.9), rgba(150, 255, 71, 0.82));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 22px rgba(49, 245, 255, 0.36);
+  transform: translate(
+    calc(-50% + var(--stick-x, 0px)),
+    calc(-50% + var(--stick-y, 0px))
+  );
+  transition: transform 70ms linear;
+}
+
+.mobile-aim-knob {
+  width: calc(var(--mobile-control-size) * 0.34);
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0 13%, transparent 14% 100%),
+    conic-gradient(
+      from 0deg,
+      rgba(255, 184, 74, 0),
+      rgba(255, 184, 74, 0.94),
+      rgba(255, 79, 216, 0.72),
+      rgba(255, 184, 74, 0)
+    );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 24px rgba(255, 184, 74, 0.34);
+  transform: translate(
+    calc(-50% + var(--aim-x, 0px)),
+    calc(-50% + var(--aim-y, 0px))
+  );
+}
+
+button.mobile-dash-button {
+  position: absolute;
+  left: var(--mobile-control-side);
+  bottom: calc(var(--mobile-control-bottom) + var(--mobile-control-size) + 0.6rem);
+  width: 3.65rem;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border-radius: 999px;
+  pointer-events: auto;
+  touch-action: none;
+  color: #041017;
+  background: linear-gradient(135deg, #ffb84a, #fff0cb);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 24px rgba(255, 184, 74, 0.28);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.mobile-dash-button:hover,
+button.mobile-dash-button:focus-visible {
+  transform: translateX(-50%);
+  filter: none;
+}
+
+button.mobile-dash-button.is-active {
+  filter: brightness(1.18);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.22),
+    0 0 34px rgba(255, 184, 74, 0.5);
+}
+
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .mobile-controls.is-visible {
+    display: block;
+  }
+}
+
+@media (hover: none) and (orientation: landscape) and (max-height: 560px),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 560px),
+  (any-pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  .mobile-controls {
+    --mobile-control-size: clamp(4.6rem, 15vh, 5.3rem);
+    --mobile-control-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  }
 }
 
 .locale-switch {
@@ -284,7 +440,7 @@ button.debug-panel-button {
   background:
     linear-gradient(90deg, rgba(2, 4, 9, 0.96) 0%, rgba(2, 4, 9, 0.62) 42%, rgba(2, 4, 9, 0.2) 68%, rgba(2, 4, 9, 0.82) 100%),
     linear-gradient(180deg, rgba(2, 4, 9, 0.82) 0%, rgba(2, 4, 9, 0.22) 45%, rgba(2, 4, 9, 0.86) 100%),
-    url("/promo/tope-cover.png") center / cover no-repeat;
+    url("/promo/tope-cover-light.webp") center / cover no-repeat;
 }
 
 .intro-screen::before,
@@ -397,7 +553,7 @@ button.intro-skip {
   background:
     linear-gradient(90deg, rgba(2, 4, 9, 0.92) 0%, rgba(2, 4, 9, 0.6) 35%, rgba(2, 4, 9, 0.16) 62%, rgba(2, 4, 9, 0.8) 100%),
     linear-gradient(0deg, rgba(2, 4, 9, 0.94) 0%, rgba(2, 4, 9, 0.2) 38%, rgba(2, 4, 9, 0.64) 100%),
-    url("/promo/tope-cover.png") center / cover no-repeat;
+    url("/promo/tope-cover-light.webp") center / cover no-repeat;
 }
 
 .title-screen::before,
@@ -1912,6 +2068,25 @@ button.draft-reroll-button:disabled:hover {
   display: block;
   font-size: 0.92rem;
   letter-spacing: 0.06em;
+}
+
+.run-about {
+  margin: 0.75rem 0 0;
+  color: rgba(172, 188, 218, 0.62);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.run-about a {
+  color: rgba(49, 245, 255, 0.76);
+  text-decoration: none;
+}
+
+.run-about a:hover,
+.run-about a:focus-visible {
+  color: #fff0cb;
 }
 
 .hud {

@@ -235,8 +235,17 @@ const BATTLE_LOOP_SAMPLES: LoopSample[] = [
   },
   {
     gain: 0.14,
-    path: "/assets/audio/music/jumpingcyborgmix2.ogg"
+    path: "/assets/audio/music/jumpingcyborgmix2.mp3"
   }
+];
+
+const STARTUP_CUES: AudioCue[] = [
+  "ui-accept",
+  "shot-fired",
+  "enemy-hit",
+  "enemy-killed",
+  "money-collected",
+  "orb-collected"
 ];
 
 export interface AudioBus {
@@ -527,12 +536,6 @@ export function createAudioBus(): AudioBus {
     return load;
   };
 
-  const preloadAudioAssets = (): void => {
-    for (const sample of Object.values(CUE_SAMPLES)) {
-      void loadAudioBuffer(sample.path);
-    }
-  };
-
   const playSample = (cue: AudioCue): boolean => {
     const sample = CUE_SAMPLES[cue];
     const nowMs = window.performance.now();
@@ -646,7 +649,11 @@ export function createAudioBus(): AudioBus {
     };
   };
 
-  preloadAudioAssets();
+  const warmCommonCueSamples = (): void => {
+    for (const cue of STARTUP_CUES) {
+      void loadAudioBuffer(CUE_SAMPLES[cue].path);
+    }
+  };
 
   return {
     dispatch: (events) => {
@@ -672,6 +679,7 @@ export function createAudioBus(): AudioBus {
     },
     prime: () => {
       enabled = true;
+      warmCommonCueSamples();
       if (context.state === "suspended") {
         void context.resume().then(updateMusicPlayback);
         return;

@@ -66,7 +66,38 @@ interface RunSummary {
   waveNumber: number;
 }
 
+interface PortalContext {
+  fromPortal: boolean;
+  params: URLSearchParams;
+  previousRef: string | null;
+}
+
+type PortalId = "exit" | "return";
+
+interface PortalRuntimeEntry {
+  id: PortalId;
+  kind: "exit" | "return";
+  label: string;
+  position: { x: number; y: number };
+  radius: number;
+}
+
+const PORTAL_EXIT_URL = "https://vibejam.cc/portal/2026";
+const PORTAL_EXIT_POSITION = { x: 12.4, y: -9.4 };
+const PORTAL_RETURN_POSITION = { x: -4.4, y: 0.6 };
+const PORTAL_TRIGGER_RADIUS = 1.7;
+const PORTAL_LOADOUT = {
+  cards: [
+    // Inauthentic Content Scanner / Revenue Redirector / Compliance Drone
+    "card-purge",
+    "card-overcore",
+    "card-repair"
+  ],
+  name: "Portal Compliance Loadout"
+} as const satisfies { cards: readonly ActionCardId[]; name: string };
+
 export function createApp(rootElement: HTMLDivElement): void {
+  const portalContext = readPortalContext();
   const bootIntro = rootElement.querySelector(".boot-intro");
   const shell = document.createElement("div");
   shell.className = "app-shell";
@@ -104,6 +135,7 @@ export function createApp(rootElement: HTMLDivElement): void {
   let activeDraftMode: "chapter-transition" | "opening-action" | "upgrade" | null = null;
   let draftRerollsRemaining = 0;
   let debugRandomRestore: (() => void) | null = null;
+  let hasTriggeredPortal = false;
   let openingActionPicksRemaining = 1;
   let pbAnnouncedThisRun = false;
   let usedActionCards: ActionCardId[] = [];
@@ -155,6 +187,66 @@ export function createApp(rootElement: HTMLDivElement): void {
     activeRunModifiers = getMetaRunModifiers(metaProgression);
     applyMetaRunModifiersToPlayer(session.player, activeRunModifiers);
     openingActionPicksRemaining = activeRunModifiers.openingActionPicks;
+  };
+
+  const startPortalRun = (): void => {
+    audio.setMusicMode("battle");
+    resetRunForNewContract();
+    activeDraftMode = null;
+    draftRerollsRemaining = 0;
+    openingActionPicksRemaining = 0;
+    shell.dataset.portalLoadout = PORTAL_LOADOUT.name;
+    for (const actionCardId of PORTAL_LOADOUT.cards) {
+      applyUpgradeSelection(session, actionCardId);
+    }
+    input.clearTransientState();
+    hud.clearTransientState();
+    stateMachine.transition("playing");
+  };
+
+  const portalEntries = createPortalEntries(portalContext);
+
+  const triggerPortalRedirect = (target: string): void => {
+    if (hasTriggeredPortal) {
+      return;
+    }
+
+    hasTriggeredPortal = true;
+    window.location.assign(target);
+  };
+
+  const checkPortalCollision = (
+    playerPosition: { x: number; y: number },
+    playerHealth: number,
+    playerMaxHealth: number,
+    playerSpeed: number
+  ): void => {
+    if (hasTriggeredPortal) {
+      return;
+    }
+
+    for (const portal of portalEntries) {
+      if (!isInsidePortal(playerPosition, portal)) {
+        continue;
+      }
+
+      if (portal.id === "return") {
+        const returnUrl = buildPortalReturnUrl(portalContext);
+        if (returnUrl) {
+          triggerPortalRedirect(returnUrl);
+        }
+        return;
+      }
+
+      triggerPortalRedirect(
+        buildPortalExitUrl(portalContext, {
+          health: playerHealth,
+          maxHealth: playerMaxHealth,
+          speed: playerSpeed
+        })
+      );
+      return;
+    }
   };
 
   hud = createHud(overlayLayer, i18n, {
@@ -523,6 +615,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     );
     overlays.setState(state);
     hud.setVisible(state === "playing" || state === "between-waves");
+    input.setTouchControlsVisible(state === "playing");
 
     if (state !== "playing") {
       scene.setArtilleryStrikes([]);
@@ -624,6 +717,12 @@ export function createApp(rootElement: HTMLDivElement): void {
       const snapshot = input.createSnapshot(scene.screenToGround, fallbackAim);
       const result = updateGameSession(session, snapshot, deltaSeconds);
       const view = getSessionSnapshot(session);
+      checkPortalCollision(
+        view.player.position,
+        view.player.health,
+        view.player.maxHealth,
+        view.player.moveSpeed
+      );
       const isOverrun =
         view.player.health <= 25 && view.wave.enemiesRemaining >= 5;
       const bossCoreExposed = view.boss?.mode === "exposed";
@@ -951,8 +1050,13 @@ export function createApp(rootElement: HTMLDivElement): void {
   });
   scene.setProjectiles([]);
   scene.setSpawnWarnings([]);
+  scene.setPortals(portalEntries);
 
-  stateMachine.transition("intro");
+  if (portalContext.fromPortal) {
+    startPortalRun();
+  } else {
+    stateMachine.transition("intro");
+  }
   if (bootIntro) {
     shell.style.visibility = "";
     rootElement.replaceChildren(shell);
@@ -967,6 +1071,138 @@ export function createApp(rootElement: HTMLDivElement): void {
     loop.stop();
     window.removeEventListener("keydown", handleKeyDown);
   });
+}
+
+function readPortalContext(): PortalContext {
+  const params = new URLSearchParams(window.location.search);
+
+  return {
+    fromPortal: params.get("portal") === "true",
+    params,
+    previousRef: params.get("ref")
+  };
+}
+
+function createPortalEntries(context: PortalContext): PortalRuntimeEntry[] {
+  return [
+    ...(context.fromPortal
+      ? [
+          {
+            id: "return" as const,
+            kind: "return" as const,
+            label: "RETURN PORTAL",
+            position: PORTAL_RETURN_POSITION,
+            radius: PORTAL_TRIGGER_RADIUS
+          }
+        ]
+      : []),
+    {
+      id: "exit",
+      kind: "exit",
+      label: "THEIRTUBE TRANSFER NODE",
+      position: PORTAL_EXIT_POSITION,
+      radius: PORTAL_TRIGGER_RADIUS
+    }
+  ];
+}
+
+function isInsidePortal(
+  playerPosition: { x: number; y: number },
+  portal: PortalRuntimeEntry
+): boolean {
+  const deltaX = playerPosition.x - portal.position.x;
+  const deltaY = playerPosition.y - portal.position.y;
+
+  return deltaX * deltaX + deltaY * deltaY < portal.radius * portal.radius;
+}
+
+function getCurrentGameRef(): string {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function buildPortalExitUrl(
+  context: PortalContext,
+  player: { health: number; maxHealth: number; speed: number }
+): string {
+  const destination = new URL(PORTAL_EXIT_URL);
+  const params = new URLSearchParams(context.params);
+  const username = getPortalParam(params, "username", "TOPE");
+  const color = getPortalParam(params, "color", "cyan");
+  const healthPercent = Math.max(
+    1,
+    Math.min(100, Math.round((player.health / Math.max(1, player.maxHealth)) * 100))
+  );
+
+  params.set("portal", "true");
+  params.set("ref", getCurrentGameRef());
+  params.set("username", username);
+  params.set("color", color);
+  params.set("speed", formatPortalNumber(player.speed || 5));
+  params.set("hp", `${healthPercent}`);
+  destination.search = params.toString();
+
+  return destination.toString();
+}
+
+function buildPortalReturnUrl(context: PortalContext): string | null {
+  if (!context.previousRef) {
+    return null;
+  }
+
+  const destination = parseExternalUrl(context.previousRef);
+  if (!destination) {
+    return null;
+  }
+
+  const params = new URLSearchParams(context.params);
+  params.set("ref", getCurrentGameRef());
+  applyForwardedParams(destination, params);
+
+  return destination.toString();
+}
+
+function parseExternalUrl(value: string): URL | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmed);
+  } catch {
+    try {
+      return new URL(`https://${trimmed}`);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function applyForwardedParams(
+  destination: URL,
+  params: URLSearchParams
+): void {
+  for (const key of new Set(params.keys())) {
+    destination.searchParams.delete(key);
+  }
+
+  for (const [key, value] of params) {
+    destination.searchParams.append(key, value);
+  }
+}
+
+function getPortalParam(
+  params: URLSearchParams,
+  key: string,
+  fallback: string
+): string {
+  const value = params.get(key)?.trim();
+
+  return value && value.length > 0 ? value : fallback;
+}
+
+function formatPortalNumber(value: number): string {
+  return `${Math.round(value * 100) / 100}`;
 }
 
 function createSeededRandom(seed: string): () => number {

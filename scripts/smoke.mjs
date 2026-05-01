@@ -31,6 +31,7 @@ const audioSource = readProjectFile("src/core/audio.ts");
 const channelLoreSource = readProjectFile("src/gameplay/channelLore.ts");
 const configSource = readProjectFile("src/core/config.ts");
 const i18nSource = readProjectFile("src/core/i18n.ts");
+const inputSource = readProjectFile("src/core/input.ts");
 const playerSource = readProjectFile("src/gameplay/player/player.ts");
 const enemySource = readProjectFile("src/gameplay/enemies/enemies.ts");
 const runRecordsSource = readProjectFile("src/core/runRecords.ts");
@@ -52,12 +53,24 @@ assert(
   "index.html must expose the #app mount point."
 );
 assert(
+  indexHtml.includes('<script async src="https://vibej.am/2026/widget.js"></script>') &&
+    !indexHtml.includes("https://vibejam.cc/2026/widget.js"),
+  "index.html must keep the canonical Vibe Jam 2026 widget script URL."
+);
+assert(
   indexHtml.includes("<title>DEMONETIZED: The Authenticity Purge</title>") &&
     indexHtml.includes("boot-intro") &&
+    indexHtml.includes("tope-cover-light.webp") &&
     indexHtml.includes("Loading purge contract") &&
     indexHtml.includes("Contract locked") &&
     /class="boot-intro-start"[\s\S]*?disabled/.test(indexHtml),
   "index.html must render the rethemed boot intro and locked start affordance before the JS bundle loads."
+);
+assert(
+  statSync(join(projectRoot, "public/promo/tope-cover-light.webp")).size < 90_000 &&
+    !indexHtml.includes('url("/promo/tope-cover.png")') &&
+    !stylesSource.includes('url("/promo/tope-cover.png")'),
+  "Initial intro art should use the lightweight CEO background instead of the full PNG."
 );
 assert(
   !indexHtml.includes("Ano 2026") && !i18nSource.includes("Ano 2026"),
@@ -76,8 +89,36 @@ assert(
   "App boot should transition from boot to intro."
 );
 assert(
+  appSource.includes('params.get("portal") === "true"') &&
+    appSource.includes('previousRef: params.get("ref")') &&
+    appSource.includes("Portal Compliance Loadout") &&
+    appSource.includes('"card-purge"') &&
+    appSource.includes('"card-overcore"') &&
+    appSource.includes('"card-repair"') &&
+    appSource.includes("buildPortalExitUrl") &&
+    appSource.includes("buildPortalReturnUrl") &&
+    appSource.includes("hasTriggeredPortal") &&
+    appSource.includes("scene.setPortals(portalEntries)") &&
+    appSource.includes("https://vibejam.cc/portal/2026") &&
+    appSource.includes("THEIRTUBE TRANSFER NODE") &&
+    appSource.includes("RETURN PORTAL") &&
+    sceneSource.includes("createPortalView") &&
+    sceneSource.includes("drawPortalLabel"),
+  "Portal mode should bypass menus with a mapped loadout, render neon portals, and keep one-shot redirects."
+);
+assert(
   overlaySource.includes("intro-screen") && overlaySource.includes("onSkipIntro"),
   "Intro overlay and skip handler must be wired."
+);
+assert(
+  overlaySource.includes("https://x.com/TheINAOG") &&
+    overlaySource.includes("@TheINAOG") &&
+    !overlaySource.includes("https://github.com/IAnMove/Demonetize") &&
+    overlaySource.includes("run-about") &&
+    i18nSource.includes('"about.source"') &&
+    i18nSource.includes("Repo privado") &&
+    stylesSource.includes(".run-about"),
+  "Game-over screen should expose a discreet X profile and private-repo note."
 );
 assert(
   i18nSource.includes('"intro.copy"') && i18nSource.includes('"title.main"'),
@@ -132,12 +173,18 @@ assert(
   "Channel avatar atlas should be optimized for obituary rendering."
 );
 assert(
-  !audioSource.includes("SpeechSynthesisUtterance") &&
+    !audioSource.includes("SpeechSynthesisUtterance") &&
     !audioSource.includes("demonetization complete") &&
+    !audioSource.includes("preloadAudioAssets") &&
+    !audioSource.includes("jumpingcyborgmix2.ogg") &&
+    audioSource.includes("jumpingcyborgmix2.mp3") &&
+    audioSource.includes("STARTUP_CUES") &&
+    statSync(join(projectRoot, "public/assets/audio/music/jumpingcyborgmix2.mp3")).size <
+      3_000_000 &&
     appSource.includes("notify.enemyKilled") &&
     i18nSource.includes("TheirTube") &&
     i18nSource.includes("inautentico"),
-  "TheirTube channel takedown feedback should not play the removed robotic verdict voice."
+  "TheirTube audio should avoid the removed robotic verdict voice and heavy startup preloads."
 );
 assert(
   appSource.includes("channelAvatarIndex") &&
@@ -157,6 +204,19 @@ assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&
     /\.boost-card-face\.is-mini\s*\{[^}]*width:\s*4\.85rem/s.test(stylesSource),
   "Passive cards should render larger at the bottom-left HUD position."
+);
+assert(
+  inputSource.includes("setTouchControlsVisible") &&
+    inputSource.includes("mobile-controls") &&
+    inputSource.includes("mobile-stick") &&
+    inputSource.includes("mobile-aim-pad") &&
+    inputSource.includes("mobile-dash-button") &&
+    inputSource.includes("pointerType !== \"mouse\"") &&
+    appSource.includes("input.setTouchControlsVisible(state === \"playing\")") &&
+    stylesSource.includes(".mobile-controls") &&
+    stylesSource.includes("@media (hover: none), (pointer: coarse)") &&
+    stylesSource.includes("touch-action: none"),
+  "Mobile play should expose touch movement, aim/fire, and dash controls only while playing."
 );
 
 const states = [
@@ -179,6 +239,7 @@ for (const state of states) {
 
 const transitions = [
   ["boot", "intro"],
+  ["boot", "playing"],
   ["intro", "title"],
   ["title", "playing"],
   ["playing", "chapter-transition"],

@@ -23,6 +23,10 @@ import {
 } from "../gameplay/progression/upgrades";
 import { createBoostCardFace } from "./boostCards";
 
+const ABOUT_LINKS = {
+  x: "https://x.com/TheINAOG"
+} as const;
+
 const META_UPGRADE_ICON_CLASS: Record<MetaUpgradeId, string> = {
   "aggressive-audit": "damage",
   "collection-reach": "pickup",
@@ -233,6 +237,7 @@ export function createOverlays(
 
   const titleScreen = document.createElement("section");
   titleScreen.className = "screen title-screen";
+  titleScreen.hidden = true;
 
   const titlePanel = document.createElement("div");
   titlePanel.className = "screen-panel";
@@ -461,6 +466,17 @@ export function createOverlays(
   restartHint.className = "micro-copy";
 
   const gameOverLegend = createControlLegend(i18n);
+  const gameOverAbout = document.createElement("p");
+  gameOverAbout.className = "run-about";
+  const gameOverAuthorLink = document.createElement("a");
+  gameOverAuthorLink.href = ABOUT_LINKS.x;
+  gameOverAuthorLink.target = "_blank";
+  gameOverAuthorLink.rel = "noreferrer";
+  gameOverAuthorLink.textContent = "@TheINAOG";
+  const gameOverSourceLink = document.createElement("a");
+  gameOverSourceLink.href = ABOUT_LINKS.x;
+  gameOverSourceLink.target = "_blank";
+  gameOverSourceLink.rel = "noreferrer";
 
   restartActions.append(restartButton, gameOverMenuButton, restartHint);
   gameOverPanel.append(
@@ -478,7 +494,8 @@ export function createOverlays(
     gameOverSummary,
     gameOverInstalled,
     restartActions,
-    gameOverLegend
+    gameOverLegend,
+    gameOverAbout
   );
   gameOverScreen.appendChild(gameOverPanel);
 
@@ -1189,6 +1206,13 @@ export function createOverlays(
     restartButton.textContent = i18n.t("gameOver.restart");
     gameOverMenuButton.textContent = i18n.t("gameOver.menu");
     restartHint.textContent = i18n.t("gameOver.hint");
+    gameOverSourceLink.textContent = i18n.t("about.source");
+    gameOverAbout.replaceChildren(
+      document.createTextNode(`${i18n.t("about.madeBy")} `),
+      gameOverAuthorLink,
+      document.createTextNode(" / "),
+      gameOverSourceLink
+    );
 
     victoryEyebrow.textContent = i18n.t("victory.eyebrow");
     victoryHeading.main.textContent = i18n.t("victory.titleMain");

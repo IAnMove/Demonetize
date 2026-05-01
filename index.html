@@ -7,6 +7,14 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>DEMONETIZED: The Authenticity Purge</title>
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("portal") === "true") {
+          document.documentElement.dataset.portal = "true";
+        }
+      })();
+    </script>
     <style>
       :root {
         color-scheme: dark;
@@ -43,7 +51,7 @@
           linear-gradient(146deg, rgba(49, 245, 255, 0.08), transparent 44%),
           linear-gradient(28deg, rgba(255, 184, 74, 0.12), transparent 52%),
           linear-gradient(90deg, rgba(2, 4, 9, 0.95), rgba(2, 4, 9, 0.42), rgba(2, 4, 9, 0.86)),
-          url("/promo/tope-cover.png") center / cover no-repeat;
+          url("/promo/tope-cover-light.webp") center / cover no-repeat;
         background-size:
           4rem 4rem,
           4rem 4rem,
@@ -76,6 +84,11 @@
           transparent 7px
         );
         opacity: 0.42;
+      }
+
+      html[data-portal="true"] .boot-intro {
+        display: none;
+        background-image: none;
       }
 
       .boot-intro-panel {

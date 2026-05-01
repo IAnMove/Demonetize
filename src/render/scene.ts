@@ -60,6 +60,12 @@ type BossPulseLike = {
   progress: number;
   radius: number;
 };
+type PortalLike = {
+  kind: "exit" | "return";
+  label: string;
+  position: Vec2Like;
+  radius: number;
+};
 type SpawnWarningLike = {
   archetype: EnemyLike["archetype"];
   isElite: boolean;
@@ -253,6 +259,7 @@ export interface GameScene {
   setAimPoint: (aimPoint: Vec2Like | null) => void;
   setEnemies: (enemies: EnemyLike[]) => void;
   setPickups: (pickups: PickupLike[]) => void;
+  setPortals: (portals: PortalLike[]) => void;
   setPlayerPose: (position: Vec2Like, facing: Vec2Like) => void;
   setPlayerVisuals: (visuals: PlayerVisuals) => void;
   setProjectiles: (projectiles: ProjectileLike[]) => void;
@@ -328,6 +335,26 @@ interface FloatingMoneyValue {
   maxLife: number;
   root: THREE.Group;
   texture: THREE.CanvasTexture;
+}
+
+interface PortalView {
+  active: boolean;
+  core: THREE.Mesh;
+  coreMaterial: THREE.MeshStandardMaterial;
+  groundHalo: THREE.Mesh;
+  groundHaloMaterial: THREE.MeshBasicMaterial;
+  inner: THREE.Mesh;
+  innerMaterial: THREE.MeshBasicMaterial;
+  label: THREE.Mesh;
+  labelCanvas: HTMLCanvasElement;
+  labelContext: CanvasRenderingContext2D;
+  labelMaterial: THREE.MeshBasicMaterial;
+  labelTexture: THREE.CanvasTexture;
+  particleMaterial: THREE.PointsMaterial;
+  particles: THREE.Points;
+  root: THREE.Group;
+  swirl: THREE.Mesh;
+  swirlMaterial: THREE.MeshStandardMaterial;
 }
 
 interface PlayerDebris {
@@ -473,6 +500,11 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const chapterHotMagenta = new THREE.Color("#ff7d64");
   const chapterColdCyan = new THREE.Color("#31f5ff");
   const chapterHotCyan = new THREE.Color("#ffb347");
+  const channelAvatarAtlasPaths = [
+    "/avatars/channel-avatars.jpg",
+    "/avatars/channel-avatars-2.jpg"
+  ] as const;
+  const channelAvatarAtlases: Array<THREE.Texture | null> = [null, null];
   const loadChannelAvatarAtlas = (path: string): THREE.Texture => {
     const texture = new THREE.TextureLoader().load(path);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -481,10 +513,17 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     texture.anisotropy = 4;
     return texture;
   };
-  const channelAvatarAtlases: [THREE.Texture, THREE.Texture] = [
-    loadChannelAvatarAtlas("/avatars/channel-avatars.jpg"),
-    loadChannelAvatarAtlas("/avatars/channel-avatars-2.jpg")
-  ];
+  const getChannelAvatarAtlas = (atlasIndex: number): THREE.Texture => {
+    const safeIndex = atlasIndex === 1 ? 1 : 0;
+    const loadedAtlas = channelAvatarAtlases[safeIndex];
+    if (loadedAtlas) {
+      return loadedAtlas;
+    }
+
+    const atlas = loadChannelAvatarAtlas(channelAvatarAtlasPaths[safeIndex]);
+    channelAvatarAtlases[safeIndex] = atlas;
+    return atlas;
+  };
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -745,6 +784,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const floatingMoneyRoot = new THREE.Group();
   scene.add(floatingMoneyRoot);
 
+  const portalRoot = new THREE.Group();
+  scene.add(portalRoot);
+
   const killGridMaterials: THREE.MeshBasicMaterial[] = [];
   const purgeLaneMaterials: THREE.MeshBasicMaterial[] = [];
   const purgeLaneStates: Array<ArenaPurgeLike | undefined> = [
@@ -854,9 +896,10 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const floatingMoneyPool = Array.from({ length: 24 }, () =>
     createFloatingMoneyValue(floatingMoneyRoot)
   );
+  const portalViews = Array.from({ length: 2 }, () => createPortalView(portalRoot));
   const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
   const channelObituaryPool = Array.from({ length: 14 }, () =>
-    createChannelObituaryView(channelObituaryRoot, channelAvatarAtlases[0])
+    createChannelObituaryView(channelObituaryRoot, null)
   );
   const playerDebrisPool = createPlayerDebrisPool(playerDebrisRoot);
   let arenaDangerLevel = 0;
@@ -894,7 +937,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       return pooledView;
     }
 
-    const nextView = createEnemyView(archetype, channelAvatarAtlases[0]);
+    const nextView = createEnemyView(archetype, null);
     enemyRoot.add(nextView.root);
     return nextView;
   };
@@ -1135,7 +1178,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     applyChannelAvatar(
       obituary.avatar,
       obituary.avatarMaterial,
-      channelAvatarAtlases,
+      getChannelAvatarAtlas,
       event.channelAvatarIndex
     );
     drawChannelObituaryLabel(obituary, event.channelName);
@@ -2953,6 +2996,29 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         value.material.opacity = Math.min(1, lifeRatio * 1.45);
       }
 
+      for (let index = 0; index < portalViews.length; index += 1) {
+        const view = portalViews[index];
+        if (!view.active) {
+          continue;
+        }
+
+        const pulse = 0.5 + Math.sin(sceneTime * 4.2 + index) * 0.5;
+        const slowPulse = 0.5 + Math.sin(sceneTime * 2.3 + index * 1.7) * 0.5;
+        view.root.quaternion.copy(camera.quaternion);
+        view.core.rotation.z += renderDeltaSeconds * (1.35 + index * 0.22);
+        view.swirl.rotation.z -= renderDeltaSeconds * (0.92 + index * 0.18);
+        view.inner.rotation.z += renderDeltaSeconds * 0.42;
+        view.groundHalo.rotation.z -= renderDeltaSeconds * 1.2;
+        view.groundHalo.scale.setScalar(1 + pulse * 0.14);
+        view.coreMaterial.emissiveIntensity = 2.2 + pulse * 1.1;
+        view.swirlMaterial.emissiveIntensity = 1.8 + slowPulse * 0.8;
+        view.innerMaterial.opacity = 0.22 + pulse * 0.18;
+        view.groundHaloMaterial.opacity = 0.18 + slowPulse * 0.18;
+        view.labelMaterial.opacity = 0.78 + pulse * 0.18;
+        view.particleMaterial.opacity = 0.34 + slowPulse * 0.22;
+        view.particles.rotation.z += renderDeltaSeconds * (0.42 + index * 0.08);
+      }
+
       for (const decal of decalPool) {
         if (!decal.active) {
           continue;
@@ -3696,6 +3762,33 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         }
       }
     },
+    setPortals: (portals) => {
+      for (let index = 0; index < portalViews.length; index += 1) {
+        const view = portalViews[index];
+        const portal = portals[index];
+
+        if (!portal) {
+          view.active = false;
+          view.root.visible = false;
+          continue;
+        }
+
+        const primaryColor = portal.kind === "return" ? "#ff4fd8" : "#31f5ff";
+        const secondaryColor = portal.kind === "return" ? "#31f5ff" : "#ff4fd8";
+        view.active = true;
+        view.root.visible = true;
+        view.root.position.set(portal.position.x, 1.18, portal.position.y);
+        view.root.scale.setScalar(Math.max(0.78, portal.radius * 0.48));
+        view.coreMaterial.color.set(primaryColor);
+        view.coreMaterial.emissive.set(primaryColor);
+        view.swirlMaterial.color.set(secondaryColor);
+        view.swirlMaterial.emissive.set(secondaryColor);
+        view.innerMaterial.color.set(primaryColor);
+        view.groundHaloMaterial.color.set(secondaryColor);
+        view.particleMaterial.color.set(primaryColor);
+        drawPortalLabel(view, portal.label, primaryColor, secondaryColor);
+      }
+    },
     setPlayerPose: (position, facing) => {
       playerPosition.set(position.x, 0, position.y);
       playerRoot.position.copy(playerPosition);
@@ -3916,7 +4009,7 @@ function createSatelliteView(parent: THREE.Group): SatelliteView {
 
 function createEnemyView(
   archetype: EnemyLike["archetype"],
-  channelAvatarAtlas: THREE.Texture
+  channelAvatarAtlas: THREE.Texture | null
 ): EnemyView {
   const root = new THREE.Group();
   const bodyMaterial = createNeonMaterial(
@@ -4597,7 +4690,7 @@ function createEnemyView(
 
 function createChannelObituaryView(
   parent: THREE.Group,
-  channelAvatarAtlas: THREE.Texture
+  channelAvatarAtlas: THREE.Texture | null
 ): ChannelObituaryView {
   const root = new THREE.Group();
   root.visible = false;
@@ -4712,11 +4805,11 @@ function fitCanvasText(
 function applyChannelAvatar(
   mesh: THREE.Mesh,
   material: THREE.MeshBasicMaterial,
-  atlases: readonly THREE.Texture[],
+  getAtlas: (atlasIndex: number) => THREE.Texture,
   avatarIndex: number
 ): void {
   const atlasIndex = getChannelAvatarAtlasIndex(avatarIndex);
-  const atlas = atlases[atlasIndex] ?? atlases[0] ?? null;
+  const atlas = getAtlas(atlasIndex);
   if (material.map !== atlas) {
     material.map = atlas;
     material.needsUpdate = true;
@@ -4933,6 +5026,159 @@ function drawFloatingMoneyValue(view: FloatingMoneyValue, amount: number): void 
   context.lineWidth = 3;
   context.strokeText(`+$${amount}`, canvas.width / 2, canvas.height / 2);
   view.texture.needsUpdate = true;
+}
+
+function createPortalView(parent: THREE.Group): PortalView {
+  const root = new THREE.Group();
+  root.visible = false;
+
+  const coreMaterial = createNeonMaterial("#31f5ff", 2.4);
+  coreMaterial.transparent = true;
+  coreMaterial.opacity = 0.86;
+  const core = new THREE.Mesh(
+    new THREE.TorusGeometry(1.45, 0.12, 12, 72),
+    coreMaterial
+  );
+  root.add(core);
+
+  const swirlMaterial = createNeonMaterial("#ff4fd8", 1.8);
+  swirlMaterial.transparent = true;
+  swirlMaterial.opacity = 0.72;
+  const swirl = new THREE.Mesh(
+    new THREE.TorusGeometry(1.05, 0.055, 8, 48),
+    swirlMaterial
+  );
+  root.add(swirl);
+
+  const innerMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#31f5ff",
+    depthWrite: false,
+    opacity: 0.26,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const inner = new THREE.Mesh(new THREE.CircleGeometry(1.22, 48), innerMaterial);
+  inner.position.z = -0.012;
+  root.add(inner);
+
+  const groundHaloMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#ff4fd8",
+    depthWrite: false,
+    opacity: 0.22,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const groundHalo = new THREE.Mesh(
+    new THREE.RingGeometry(1.52, 1.82, 64),
+    groundHaloMaterial
+  );
+  groundHalo.rotation.x = -Math.PI / 2;
+  groundHalo.position.y = -1.08;
+  root.add(groundHalo);
+
+  const labelCanvas = document.createElement("canvas");
+  labelCanvas.width = 768;
+  labelCanvas.height = 160;
+  const labelContext = labelCanvas.getContext("2d");
+  if (!labelContext) {
+    throw new Error("Could not create portal label canvas.");
+  }
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  labelTexture.colorSpace = THREE.SRGBColorSpace;
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    map: labelTexture,
+    opacity: 0.9,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 1.02), labelMaterial);
+  label.position.y = 2.16;
+  root.add(label);
+
+  const particleGeometry = new THREE.BufferGeometry();
+  const particleCount = 90;
+  const particlePositions = new Float32Array(particleCount * 3);
+  for (let index = 0; index < particleCount; index += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 1.2 + Math.random() * 0.46;
+    particlePositions[index * 3] = Math.cos(angle) * radius;
+    particlePositions[index * 3 + 1] = Math.sin(angle) * radius;
+    particlePositions[index * 3 + 2] = (Math.random() - 0.5) * 0.28;
+  }
+  particleGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(particlePositions, 3)
+  );
+  const particleMaterial = new THREE.PointsMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#31f5ff",
+    depthWrite: false,
+    opacity: 0.48,
+    size: 0.055,
+    transparent: true
+  });
+  const particles = new THREE.Points(particleGeometry, particleMaterial);
+  root.add(particles);
+
+  parent.add(root);
+
+  return {
+    active: false,
+    core,
+    coreMaterial,
+    groundHalo,
+    groundHaloMaterial,
+    inner,
+    innerMaterial,
+    label,
+    labelCanvas,
+    labelContext,
+    labelMaterial,
+    labelTexture,
+    particleMaterial,
+    particles,
+    root,
+    swirl,
+    swirlMaterial
+  };
+}
+
+function drawPortalLabel(
+  view: PortalView,
+  label: string,
+  primaryColor: string,
+  secondaryColor: string
+): void {
+  const { labelCanvas: canvas, labelContext: context } = view;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.lineJoin = "round";
+  let fontSize = 54;
+  do {
+    context.font = `900 ${fontSize}px "Bahnschrift", "Segoe UI", Arial, sans-serif`;
+    fontSize -= 2;
+  } while (context.measureText(label).width > canvas.width - 112 && fontSize > 34);
+  context.fillStyle = "rgba(4, 8, 18, 0.76)";
+  context.strokeStyle = secondaryColor;
+  context.lineWidth = 5;
+  context.beginPath();
+  context.roundRect(34, 34, canvas.width - 68, canvas.height - 68, 18);
+  context.fill();
+  context.stroke();
+  context.shadowColor = primaryColor;
+  context.shadowBlur = 24;
+  context.strokeStyle = "rgba(0, 0, 0, 0.9)";
+  context.lineWidth = 10;
+  context.strokeText(label, canvas.width / 2, canvas.height / 2 + 3);
+  context.fillStyle = "#f3fdff";
+  context.fillText(label, canvas.width / 2, canvas.height / 2 + 3);
+  context.shadowBlur = 0;
+  view.labelTexture.needsUpdate = true;
 }
 
 function createEnemyDeathShardPool(parent: THREE.Group): EnemyDeathShard[] {
