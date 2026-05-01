@@ -53,7 +53,7 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
     path: "/assets/audio/sfx/ui-accept-rescopic-select.wav"
   },
   "shot-fired": {
-    gain: 0.16,
+    gain: 0.08,
     minIntervalMs: 90,
     path: "/assets/audio/sfx/shot-fired-rescopic-pulse.wav",
     rateVariance: 0.05
@@ -292,7 +292,6 @@ export function createAudioBus(): AudioBus {
   let desiredMusicMode: MusicMode = "menu";
   let selectedBattleLoop: LoopSample | null = null;
   let enabled = false;
-  let lastVerdictAt = -1000;
 
   const triggerCue = (cue: AudioCue): void => {
     if (!enabled) {
@@ -308,8 +307,8 @@ export function createAudioBus(): AudioBus {
         playTone("triangle", 360, 520, 0.08, 0.22);
         break;
       case "shot-fired":
-        playTone("sawtooth", 520, 180, 0.05, 0.11);
-        playTone("square", 150, 88, 0.045, 0.035);
+        playTone("sawtooth", 520, 180, 0.05, 0.055);
+        playTone("square", 150, 88, 0.045, 0.018);
         break;
       case "dash":
         playTone("triangle", 150, 320, 0.12, 0.15);
@@ -647,43 +646,6 @@ export function createAudioBus(): AudioBus {
     };
   };
 
-  const playRoboticVerdict = (): void => {
-    const nowMs = window.performance.now();
-    if (nowMs - lastVerdictAt < 380) {
-      return;
-    }
-
-    lastVerdictAt = nowMs;
-    playTone("square", 92, 92, 0.12, 0.05);
-    window.setTimeout(() => playTone("sawtooth", 132, 84, 0.16, 0.04), 95);
-
-    if (
-      typeof window.speechSynthesis === "undefined" ||
-      typeof SpeechSynthesisUtterance === "undefined"
-    ) {
-      return;
-    }
-    if (window.speechSynthesis.speaking) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance("demonetization complete");
-    utterance.lang = "en-US";
-    utterance.pitch = 0.25;
-    utterance.rate = 0.78;
-    utterance.volume = 0.48;
-
-    const voices = window.speechSynthesis.getVoices();
-    const voice =
-      voices.find((candidate) => /david|mark|google us english/i.test(candidate.name)) ??
-      voices.find((candidate) => candidate.lang.toLowerCase().startsWith("en"));
-    if (voice) {
-      utterance.voice = voice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  };
-
   preloadAudioAssets();
 
   return {
@@ -693,7 +655,6 @@ export function createAudioBus(): AudioBus {
       }
 
       const mapped = collapseEventCues(events);
-      const hasEnemyKill = events.some((event) => event.type === "enemy-killed");
       let playedCount = 0;
 
       for (const cue of mapped) {
@@ -705,9 +666,6 @@ export function createAudioBus(): AudioBus {
         }
       }
 
-      if (hasEnemyKill) {
-        playRoboticVerdict();
-      }
     },
     playCue: (cue) => {
       triggerCue(cue);

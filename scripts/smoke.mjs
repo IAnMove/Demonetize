@@ -132,12 +132,12 @@ assert(
   "Channel avatar atlas should be optimized for obituary rendering."
 );
 assert(
-  audioSource.includes("SpeechSynthesisUtterance") &&
-    audioSource.includes("demonetization complete") &&
+  !audioSource.includes("SpeechSynthesisUtterance") &&
+    !audioSource.includes("demonetization complete") &&
     appSource.includes("notify.enemyKilled") &&
     i18nSource.includes("TheirTube") &&
     i18nSource.includes("inautentico"),
-  "TheirTube corporate AI lore should include channel takedown feedback and robotic verdict copy."
+  "TheirTube channel takedown feedback should not play the removed robotic verdict voice."
 );
 assert(
   appSource.includes("channelAvatarIndex") &&

@@ -93,6 +93,8 @@ const UP_VECTOR = new THREE.Vector3(0, 1, 0);
 const GROUND_PLANE = new THREE.Plane(UP_VECTOR, 0);
 const PLAYER_HEALTH_BAR_WIDTH = 1.38;
 const PLAYER_HEALTH_BAR_HEIGHT = 0.12;
+const FLOATING_MONEY_VALUE_SCALE = 2.88;
+const FLOATING_MONEY_VALUE_SCALE_GROWTH = 0.4;
 const MONEY_FONT = new FontLoader().parse(helvetikerBold);
 
 function getRenderPixelRatio(): number {
@@ -1557,7 +1559,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     view.root.visible = true;
     view.root.position.set(event.position.x, view.baseY, event.position.y);
     view.root.quaternion.copy(camera.quaternion);
-    view.root.scale.setScalar(0.72);
+    view.root.scale.setScalar(FLOATING_MONEY_VALUE_SCALE);
     view.material.opacity = 1;
     drawFloatingMoneyValue(view, amount);
   };
@@ -2943,7 +2945,11 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         const scalePop = 1 + Math.sin(Math.min(1, progress * 2.1) * Math.PI) * 0.16;
         value.root.position.y = value.baseY + lift;
         value.root.quaternion.copy(camera.quaternion);
-        value.root.scale.setScalar((0.72 + progress * 0.1) * scalePop);
+        value.root.scale.setScalar(
+          (FLOATING_MONEY_VALUE_SCALE +
+            progress * FLOATING_MONEY_VALUE_SCALE_GROWTH) *
+            scalePop
+        );
         value.material.opacity = Math.min(1, lifeRatio * 1.45);
       }
 
