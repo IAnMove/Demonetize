@@ -58,13 +58,23 @@ assert(
   "index.html must keep the canonical Vibe Jam 2026 widget script URL."
 );
 assert(
+  indexHtml.includes('<link rel="icon" href="/favicon.ico" sizes="any" />') &&
+    statSync(join(projectRoot, "public/favicon.ico")).size < 20_000,
+  "index.html must expose a lightweight favicon.ico avatar."
+);
+assert(
   indexHtml.includes("<title>DEMONETIZED: The Authenticity Purge</title>") &&
     indexHtml.includes("boot-intro") &&
     indexHtml.includes("tope-cover-light.webp") &&
-    indexHtml.includes("Loading purge contract") &&
-    indexHtml.includes("Contract locked") &&
-    /class="boot-intro-start"[\s\S]*?disabled/.test(indexHtml),
-  "index.html must render the rethemed boot intro and locked start affordance before the JS bundle loads."
+    indexHtml.includes("boot-intro-copy-fragment") &&
+    indexHtml.includes("Accept Contract") &&
+    indexHtml.includes("bootAccepted") &&
+    indexHtml.includes("tope:boot-accepted") &&
+    !indexHtml.includes("Loading purge contract") &&
+    !indexHtml.includes("Contract locked") &&
+    !indexHtml.includes("boot-progress") &&
+    !/class="boot-intro-start"[\s\S]*?disabled/.test(indexHtml),
+  "index.html must render the contract intro immediately without loading copy or progress UI."
 );
 assert(
   statSync(join(projectRoot, "public/promo/tope-cover-light.webp")).size < 90_000 &&
@@ -109,6 +119,13 @@ assert(
 assert(
   overlaySource.includes("intro-screen") && overlaySource.includes("onSkipIntro"),
   "Intro overlay and skip handler must be wired."
+);
+assert(
+  overlaySource.includes("renderIntroCopy") &&
+    overlaySource.includes("intro-copy-fragment") &&
+    stylesSource.includes("intro-phrase-reveal") &&
+    stylesSource.includes("intro-actions-reveal"),
+  "Intro contract copy should reveal as readable phrases instead of behaving like a loading screen."
 );
 assert(
   overlaySource.includes("https://x.com/TheINAOG") &&

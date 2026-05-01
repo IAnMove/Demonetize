@@ -523,13 +523,20 @@ button.debug-panel-button {
   line-height: 1.45;
   letter-spacing: 0;
   overflow-wrap: break-word;
-  animation: intro-copy-rise 820ms ease both;
+}
+
+.intro-copy-fragment {
+  opacity: 0;
+  animation: intro-phrase-reveal 460ms ease both;
+  animation-delay: calc(var(--fragment-index, 0) * 190ms);
 }
 
 .intro-actions {
   display: flex;
   align-items: center;
   gap: 0.8rem;
+  animation: intro-actions-reveal 420ms ease both;
+  animation-delay: 760ms;
 }
 
 button.intro-skip {
@@ -2498,14 +2505,23 @@ button.action-card:focus-visible::after {
   }
 }
 
-@keyframes intro-copy-rise {
+@keyframes intro-phrase-reveal {
   from {
     opacity: 0;
-    transform: translateY(1.2rem) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes intro-actions-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.55rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

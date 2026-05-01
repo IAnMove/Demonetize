@@ -318,6 +318,16 @@ export function createApp(rootElement: HTMLDivElement): void {
     stateMachine.transition("title");
   };
 
+  const consumeBootAccepted = (): void => {
+    if (portalContext.fromPortal || stateMachine.value !== "intro") {
+      return;
+    }
+
+    skipIntro();
+  };
+
+  window.addEventListener("tope:boot-accepted", consumeBootAccepted);
+
   const returnToTitle = (): void => {
     audio.setMusicMode("menu");
     audio.prime();
@@ -1056,6 +1066,9 @@ export function createApp(rootElement: HTMLDivElement): void {
     startPortalRun();
   } else {
     stateMachine.transition("intro");
+    if (document.documentElement.dataset.bootAccepted === "true") {
+      consumeBootAccepted();
+    }
   }
   if (bootIntro) {
     shell.style.visibility = "";
@@ -1067,6 +1080,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     debugPanel?.dispose();
     useLiveRandom();
     reducedMotionQuery.removeEventListener("change", handleReducedMotionChange);
+    window.removeEventListener("tope:boot-accepted", consumeBootAccepted);
     scene.dispose();
     loop.stop();
     window.removeEventListener("keydown", handleKeyDown);

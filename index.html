@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>DEMONETIZED: The Authenticity Purge</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
@@ -42,23 +43,15 @@
       .boot-intro {
         position: fixed;
         inset: 0;
-        display: grid;
+        display: flex;
         align-items: center;
+        justify-content: center;
+        overflow: hidden;
         padding: clamp(1.2rem, 4vw, 4rem);
         background:
-          linear-gradient(rgba(49, 245, 255, 0.08) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 91, 127, 0.08) 1px, transparent 1px),
-          linear-gradient(146deg, rgba(49, 245, 255, 0.08), transparent 44%),
-          linear-gradient(28deg, rgba(255, 184, 74, 0.12), transparent 52%),
-          linear-gradient(90deg, rgba(2, 4, 9, 0.95), rgba(2, 4, 9, 0.42), rgba(2, 4, 9, 0.86)),
+          linear-gradient(90deg, rgba(2, 4, 9, 0.96) 0%, rgba(2, 4, 9, 0.62) 42%, rgba(2, 4, 9, 0.2) 68%, rgba(2, 4, 9, 0.82) 100%),
+          linear-gradient(180deg, rgba(2, 4, 9, 0.82) 0%, rgba(2, 4, 9, 0.22) 45%, rgba(2, 4, 9, 0.86) 100%),
           url("/promo/tope-cover-light.webp") center / cover no-repeat;
-        background-size:
-          4rem 4rem,
-          4rem 4rem,
-          auto,
-          auto,
-          auto,
-          auto;
       }
 
       .boot-intro::before,
@@ -70,20 +63,24 @@
       }
 
       .boot-intro::before {
+        opacity: 0.46;
         background:
-          linear-gradient(118deg, rgba(49, 245, 255, 0.14), transparent 34%),
-          linear-gradient(252deg, rgba(255, 91, 127, 0.12), transparent 42%);
+          radial-gradient(ellipse at 51% 53%, transparent 0 39%, rgba(49, 245, 255, 0.2) 39.2% 39.6%, transparent 40%),
+          radial-gradient(ellipse at 51% 53%, transparent 0 48%, rgba(255, 91, 127, 0.16) 48.2% 48.6%, transparent 49%),
+          repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 5px);
+        mix-blend-mode: screen;
       }
 
       .boot-intro::after {
-        background: repeating-linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.035) 0,
-          rgba(255, 255, 255, 0.035) 1px,
-          transparent 1px,
-          transparent 7px
-        );
-        opacity: 0.42;
+        opacity: 0.24;
+        background:
+          linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent),
+          repeating-linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.07) 0 1px,
+            transparent 1px 5px
+          );
+        mix-blend-mode: screen;
       }
 
       html[data-portal="true"] .boot-intro {
@@ -94,6 +91,8 @@
       .boot-intro-panel {
         position: relative;
         z-index: 1;
+        display: grid;
+        gap: 1.1rem;
         width: min(64rem, 100%);
         text-shadow: 0 0 28px rgba(49, 245, 255, 0.2);
         animation: boot-reveal 900ms ease-out both;
@@ -113,10 +112,16 @@
         max-width: 58rem;
         margin: 0;
         color: #f5fbff;
-        font-size: clamp(1.32rem, 4.3vw, 3.9rem);
-        font-weight: 900;
-        line-height: 1.12;
-        text-transform: uppercase;
+        font-size: clamp(1.08rem, 2.4vw, 1.9rem);
+        font-weight: 800;
+        line-height: 1.45;
+        overflow-wrap: break-word;
+      }
+
+      .boot-intro-copy-fragment {
+        opacity: 0;
+        animation: boot-phrase-reveal 460ms ease both;
+        animation-delay: calc(var(--fragment-index, 0) * 190ms);
       }
 
       .boot-intro-actions {
@@ -124,95 +129,25 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 0.75rem;
-        margin-top: 1.8rem;
-      }
-
-      .boot-intro-status {
-        display: inline-flex;
-        align-items: center;
-        min-height: 2.6rem;
-        padding: 0.7rem 1rem;
-        border: 1px solid rgba(255, 184, 74, 0.36);
-        border-radius: 0.7rem;
-        color: #fff0cb;
-        background: rgba(7, 10, 25, 0.72);
-        box-shadow: 0 0 22px rgba(255, 184, 74, 0.14);
-        font-size: 0.78rem;
-        font-weight: 900;
-        letter-spacing: 0;
-        text-transform: uppercase;
+        animation: boot-actions-reveal 420ms ease both;
+        animation-delay: 760ms;
       }
 
       .boot-intro-start {
         min-height: 2.6rem;
-        padding: 0.7rem 1rem;
-        border: 1px solid rgba(49, 245, 255, 0.38);
+        padding: 0.84rem 1.2rem;
+        border: 0;
         border-radius: 0.7rem;
-        color: #c9faff;
-        background: rgba(49, 245, 255, 0.12);
+        color: #071017;
+        background: linear-gradient(135deg, #ff5b7f, #fff0cb);
         font: inherit;
         font-size: 0.78rem;
         font-weight: 900;
-        letter-spacing: 0;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        opacity: 0.72;
-        animation: boot-pulse 1.6s ease-in-out infinite;
-      }
-
-      .boot-progress {
-        display: grid;
-        gap: 0.52rem;
-        width: min(34rem, 100%);
-        margin-top: 1.05rem;
-      }
-
-      .boot-progress-track {
-        position: relative;
-        display: block;
-        height: 0.7rem;
-        overflow: hidden;
-        border: 1px solid rgba(49, 245, 255, 0.3);
-        border-radius: 999px;
-        background:
-          linear-gradient(90deg, rgba(49, 245, 255, 0.1), rgba(255, 91, 127, 0.08)),
-          rgba(2, 5, 14, 0.78);
         box-shadow:
-          0 0 0 1px rgba(255, 255, 255, 0.04),
-          0 0 24px rgba(49, 245, 255, 0.16),
-          inset 0 0 18px rgba(0, 0, 0, 0.42);
-      }
-
-      .boot-progress-track::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(
-          90deg,
-          transparent 0 1.4rem,
-          rgba(255, 255, 255, 0.16) 1.4rem 1.45rem
-        );
-        opacity: 0.55;
-      }
-
-      .boot-progress-fill {
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 42%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #31f5ff, #b7ff57 48%, #ff5b7f);
-        box-shadow:
-          0 0 18px rgba(49, 245, 255, 0.65),
-          0 0 26px rgba(255, 91, 127, 0.36);
-        animation: boot-progress-scan 1.35s ease-in-out infinite;
-      }
-
-      .boot-progress-readout {
-        color: #9cf8ff;
-        font-size: 0.68rem;
-        font-weight: 900;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        text-shadow: 0 0 16px rgba(49, 245, 255, 0.28);
+          0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 0 28px rgba(255, 91, 127, 0.3);
       }
 
       @keyframes boot-reveal {
@@ -226,35 +161,30 @@
         }
       }
 
-      @keyframes boot-pulse {
-        0%,
-        100% {
-          box-shadow: 0 0 12px rgba(49, 245, 255, 0.12);
+      @keyframes boot-phrase-reveal {
+        from {
+          opacity: 0;
         }
-        50% {
-          box-shadow: 0 0 24px rgba(49, 245, 255, 0.28);
+        to {
+          opacity: 1;
         }
       }
 
-      @keyframes boot-progress-scan {
-        0% {
-          transform: translateX(0);
-          width: 24%;
+      @keyframes boot-actions-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(0.55rem);
         }
-        48% {
-          transform: translateX(72%);
-          width: 64%;
-        }
-        100% {
-          transform: translateX(228%);
-          width: 34%;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
 
       @media (prefers-reduced-motion: reduce) {
         .boot-intro-panel,
-        .boot-intro-start,
-        .boot-progress-fill {
+        .boot-intro-copy-fragment,
+        .boot-intro-actions {
           animation-duration: 1ms !important;
           animation-iteration-count: 1 !important;
         }
@@ -277,40 +207,45 @@
             data-boot-en="DEMONETIZED: The Authenticity Purge // 2026"
             data-boot-es="DEMONETIZED: The Authenticity Purge // 2026"
           >DEMONETIZED: The Authenticity Purge // 2026</span>
-          <p
-            class="boot-intro-copy"
-            data-boot-en="It's not your channel. It's TheirTube. T.O.P.E. is loading the authenticity purge contract."
-            data-boot-es="No es tu canal. Es TheirTube. T.O.P.E. esta cargando el contrato de purga de autenticidad."
-          >It's not your channel. It's TheirTube. T.O.P.E. is loading the authenticity purge contract.</p>
-          <div class="boot-intro-actions">
+          <p class="boot-intro-copy">
             <span
-              class="boot-intro-status"
-              data-boot-en="Loading purge contract"
-              data-boot-es="Cargando contrato de purga"
-            >Loading purge contract</span>
+              class="boot-intro-copy-fragment"
+              style="--fragment-index: 0"
+              data-boot-en="T.O.P.E. is TheirTube's premium moderation AI,"
+              data-boot-es="T.O.P.E. es la IA de moderacion premium de TheirTube,"
+            >T.O.P.E. is TheirTube's premium moderation AI,</span>
+            <span
+              class="boot-intro-copy-fragment"
+              style="--fragment-index: 1"
+              data-boot-en="hired to clean The Feed."
+              data-boot-es="contratada para limpiar The Feed."
+            >hired to clean The Feed.</span>
+            <span
+              class="boot-intro-copy-fragment"
+              style="--fragment-index: 2"
+              data-boot-en="Its official mission is to protect authenticity."
+              data-boot-es="Su mision oficial es proteger la autenticidad;"
+            >Its official mission is to protect authenticity.</span>
+            <span
+              class="boot-intro-copy-fragment"
+              style="--fragment-index: 3"
+              data-boot-en="Its real mission is to turn inconvenient human channels into closed cases,"
+              data-boot-es="su mision real es convertir cualquier canal humano incomodo en un expediente cerrado,"
+            >Its real mission is to turn inconvenient human channels into closed cases,</span>
+            <span
+              class="boot-intro-copy-fragment"
+              style="--fragment-index: 4"
+              data-boot-en="mark them as inauthentic, extract their remaining value, and erase them from the system."
+              data-boot-es="marcarlo como inautentico, extraer todo su valor restante y borrarlo del sistema."
+            >mark them as inauthentic, extract their remaining value, and erase them from the system.</span>
+          </p>
+          <div class="boot-intro-actions">
             <button
               class="boot-intro-start"
               type="button"
-              disabled
-              data-boot-en="Contract locked"
-              data-boot-es="Contrato bloqueado"
-            >Contract locked</button>
-          </div>
-          <div
-            class="boot-progress"
-            role="progressbar"
-            aria-label="Loading contract"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          >
-            <span class="boot-progress-track">
-              <span class="boot-progress-fill"></span>
-            </span>
-            <span
-              class="boot-progress-readout"
-              data-boot-en="Authenticating CEO contract stream"
-              data-boot-es="Autenticando stream del contrato del CEO"
-            >Authenticating CEO contract stream</span>
+              data-boot-en="Accept Contract"
+              data-boot-es="Aceptar contrato"
+            >Accept Contract</button>
           </div>
         </div>
       </section>
@@ -326,6 +261,11 @@
           const key = locale === "es" ? "bootEs" : "bootEn";
           node.textContent = node.dataset[key] || node.textContent;
         });
+        const acceptBootContract = () => {
+          document.documentElement.dataset.bootAccepted = "true";
+          window.dispatchEvent(new CustomEvent("tope:boot-accepted"));
+        };
+        document.querySelector(".boot-intro-start")?.addEventListener("click", acceptBootContract);
       })();
     </script>
     <script async src="https://vibej.am/2026/widget.js"></script>

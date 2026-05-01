@@ -1084,7 +1084,7 @@ export function createOverlays(
 
   const renderStaticText = (): void => {
     introEyebrow.textContent = i18n.t("intro.eyebrow");
-    introCopy.textContent = i18n.t("intro.copy");
+    renderIntroCopy(introCopy, i18n);
     introSkipButton.textContent = i18n.t("intro.skip");
     titleEyebrow.textContent = i18n.t("title.eyebrow");
     titleHeading.main.textContent = i18n.t("title.main");
@@ -1656,6 +1656,38 @@ function createSplitHeading(
   root.append(main, accent);
 
   return { accent, main, root };
+}
+
+function renderIntroCopy(target: HTMLParagraphElement, i18n: I18nController): void {
+  const fragments = getIntroCopyFragments(i18n.t("intro.copy"), i18n.getLocale());
+  target.replaceChildren();
+
+  fragments.forEach((fragment, index) => {
+    const fragmentNode = document.createElement("span");
+    fragmentNode.className = "intro-copy-fragment";
+    fragmentNode.style.setProperty("--fragment-index", String(index));
+    fragmentNode.textContent = fragment;
+    target.append(fragmentNode);
+    if (index < fragments.length - 1) {
+      target.append(document.createTextNode(" "));
+    }
+  });
+}
+
+function getIntroCopyFragments(copy: string, locale: Locale): string[] {
+  const markedCopy = locale === "es"
+    ? copy
+        .replace("TheirTube, contratada", "TheirTube,|contratada")
+        .replace("The Feed. Su mision", "The Feed.|Su mision")
+        .replace("autenticidad; su mision", "autenticidad;|su mision")
+        .replace("cerrado, marcarlo", "cerrado,|marcarlo")
+    : copy
+        .replace("AI, hired", "AI,|hired")
+        .replace("The Feed. Its official", "The Feed.|Its official")
+        .replace("authenticity. Its real", "authenticity.|Its real")
+        .replace("closed cases, mark", "closed cases,|mark");
+
+  return markedCopy.split("|").map((fragment) => fragment.trim()).filter(Boolean);
 }
 
 function createTagline(): HTMLParagraphElement {
