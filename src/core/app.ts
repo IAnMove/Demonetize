@@ -724,7 +724,11 @@ export function createApp(rootElement: HTMLDivElement): void {
         session.player.position,
         session.player.facing
       );
-      const snapshot = input.createSnapshot(scene.screenToGround, fallbackAim);
+      const snapshot = input.createSnapshot(
+        scene.screenToGround,
+        fallbackAim,
+        session.player.position
+      );
       const result = updateGameSession(session, snapshot, deltaSeconds);
       const view = getSessionSnapshot(session);
       checkPortalCollision(
@@ -973,6 +977,7 @@ export function createApp(rootElement: HTMLDivElement): void {
   );
 
   window.addEventListener("resize", scene.resize);
+  window.visualViewport?.addEventListener("resize", scene.resize);
   loop.start();
 
   const handleKeyDown = (event: KeyboardEvent): void => {
@@ -1084,6 +1089,7 @@ export function createApp(rootElement: HTMLDivElement): void {
     scene.dispose();
     loop.stop();
     window.removeEventListener("keydown", handleKeyDown);
+    window.visualViewport?.removeEventListener("resize", scene.resize);
   });
 }
 

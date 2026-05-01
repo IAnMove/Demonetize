@@ -10,7 +10,11 @@ import {
   getChannelAvatarCellIndex
 } from "../gameplay/channelLore";
 import type { FrameEvent } from "../gameplay/events";
-import { createCamera, updateFollowCamera } from "./camera";
+import {
+  createCamera,
+  updateCameraProjection,
+  updateFollowCamera
+} from "./camera";
 import { createArenaMaterial, createNeonMaterial } from "./materials";
 
 type Vec2Like = { x: number; y: number };
@@ -3084,8 +3088,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     resize: () => {
       const width = container.clientWidth || window.innerWidth;
       const height = container.clientHeight || window.innerHeight;
-      camera.aspect = width / Math.max(height, 1);
-      camera.updateProjectionMatrix();
+      updateCameraProjection(camera, width / Math.max(height, 1));
       renderer.setPixelRatio(getRenderPixelRatio());
       renderer.setSize(width, height);
     },

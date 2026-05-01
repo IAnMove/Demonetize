@@ -492,7 +492,14 @@ function createActionCardButton(
     button.style.pointerEvents = "none";
     const target = document.elementFromPoint(event.clientX, event.clientY);
     button.style.pointerEvents = previousPointerEvents;
-    const droppedOnHand = target ? actionHand.contains(target) : false;
+    const handBounds = actionHand.getBoundingClientRect();
+    const droppedInsideHandBounds =
+      event.clientX >= handBounds.left &&
+      event.clientX <= handBounds.right &&
+      event.clientY >= handBounds.top &&
+      event.clientY <= handBounds.bottom;
+    const droppedOnHand =
+      droppedInsideHandBounds || (target ? actionHand.contains(target) : false);
     const droppedOnHud = Boolean(
       target?.closest(
         ".hud-cluster, .boss-strip, .event-feed, .controls-strip, .focus-banner"

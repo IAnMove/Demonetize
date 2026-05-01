@@ -6,6 +6,8 @@ type TouchPointer = {
   currentX: number;
   currentY: number;
   id: number;
+  originX: number;
+  originY: number;
 };
 
 export interface InputSnapshot {
@@ -17,12 +19,19 @@ export interface InputSnapshot {
 
 export interface InputController {
   clearTransientState: () => void;
-  createSnapshot: (resolver: AimResolver, fallbackAim: Vec2) => InputSnapshot;
+  createSnapshot: (
+    resolver: AimResolver,
+    fallbackAim: Vec2,
+    touchAimOrigin?: Vec2
+  ) => InputSnapshot;
   dispose: () => void;
   setTouchControlsVisible: (visible: boolean) => void;
 }
 
 const TOUCH_STICK_RADIUS = 54;
+const TOUCH_AIM_DISTANCE = 7;
+const TOUCH_AIM_DEADZONE = 0.12;
+const TOUCH_MOVE_DEADZONE = 0.08;
 
 export function createInputController(target: HTMLDivElement): InputController {
   const pressedKeys = new Set<string>();
@@ -113,19 +122,13 @@ export function createInputController(target: HTMLDivElement): InputController {
     event.preventDefault();
   };
 
-  const getPadVector = (
-    pointer: TouchPointer | null,
-    pad: HTMLElement
-  ): Vec2 => {
+  const getPadVector = (pointer: TouchPointer | null): Vec2 => {
     if (!pointer) {
       return { x: 0, y: 0 };
     }
 
-    const bounds = pad.getBoundingClientRect();
-    const centerX = bounds.left + bounds.width * 0.5;
-    const centerY = bounds.top + bounds.height * 0.5;
-    const deltaX = pointer.currentX - centerX;
-    const deltaY = pointer.currentY - centerY;
+    const deltaX = pointer.currentX - pointer.originX;
+    const deltaY = pointer.currentY - pointer.originY;
     const distance = Math.hypot(deltaX, deltaY);
     const ratio =
       distance > TOUCH_STICK_RADIUS && distance > 0
@@ -138,13 +141,29 @@ export function createInputController(target: HTMLDivElement): InputController {
     };
   };
 
+  const setPadAnchor = (pad: HTMLElement, pointer: TouchPointer): void => {
+    pad.style.left = `${pointer.originX}px`;
+    pad.style.top = `${pointer.originY}px`;
+    pad.style.right = "auto";
+    pad.style.bottom = "auto";
+    pad.style.transform = "translate(-50%, -50%)";
+  };
+
+  const resetPadAnchor = (pad: HTMLElement): void => {
+    pad.style.removeProperty("left");
+    pad.style.removeProperty("top");
+    pad.style.removeProperty("right");
+    pad.style.removeProperty("bottom");
+    pad.style.removeProperty("transform");
+  };
+
   const updateTouchVisuals = (): void => {
-    const moveVector = getPadVector(moveTouch, movePad);
+    const moveVector = getPadVector(moveTouch);
     movePad.classList.toggle("is-active", Boolean(moveTouch));
     movePad.style.setProperty("--stick-x", `${moveVector.x}px`);
     movePad.style.setProperty("--stick-y", `${moveVector.y}px`);
 
-    const aimVector = getPadVector(aimTouch, aimPad);
+    const aimVector = getPadVector(aimTouch);
     aimPad.classList.toggle("is-active", Boolean(aimTouch));
     aimPad.style.setProperty("--aim-x", `${aimVector.x}px`);
     aimPad.style.setProperty("--aim-y", `${aimVector.y}px`);
@@ -154,6 +173,8 @@ export function createInputController(target: HTMLDivElement): InputController {
     moveTouch = null;
     aimTouch = null;
     dashTouchId = null;
+    resetPadAnchor(movePad);
+    resetPadAnchor(aimPad);
     dashButton.classList.remove("is-active");
     updateTouchVisuals();
   }
@@ -198,23 +219,29 @@ export function createInputController(target: HTMLDivElement): InputController {
     const touch = {
       currentX: event.clientX,
       currentY: event.clientY,
-      id: event.pointerId
+      id: event.pointerId,
+      originX: event.clientX,
+      originY: event.clientY
     };
+    const isLeftTouchArea = event.clientX < window.innerWidth * 0.5;
 
-    if (event.clientX < window.innerWidth * 0.5 && !moveTouch) {
+    if (isLeftTouchArea) {
+      if (moveTouch) {
+        return;
+      }
       moveTouch = touch;
+      setPadAnchor(movePad, touch);
       updateTouchVisuals();
       return;
     }
 
-    if (!aimTouch) {
-      aimTouch = touch;
-      pointerPosition = {
-        x: event.clientX,
-        y: event.clientY
-      };
-      updateTouchVisuals();
+    if (aimTouch) {
+      return;
     }
+
+    aimTouch = touch;
+    setPadAnchor(aimPad, touch);
+    updateTouchVisuals();
   };
 
   const handleTouchPointerMove = (event: PointerEvent): void => {
@@ -227,7 +254,9 @@ export function createInputController(target: HTMLDivElement): InputController {
       moveTouch = {
         currentX: event.clientX,
         currentY: event.clientY,
-        id: event.pointerId
+        id: event.pointerId,
+        originX: moveTouch.originX,
+        originY: moveTouch.originY
       };
       updateTouchVisuals();
       return;
@@ -238,11 +267,9 @@ export function createInputController(target: HTMLDivElement): InputController {
       aimTouch = {
         currentX: event.clientX,
         currentY: event.clientY,
-        id: event.pointerId
-      };
-      pointerPosition = {
-        x: event.clientX,
-        y: event.clientY
+        id: event.pointerId,
+        originX: aimTouch.originX,
+        originY: aimTouch.originY
       };
       updateTouchVisuals();
     }
@@ -253,11 +280,13 @@ export function createInputController(target: HTMLDivElement): InputController {
 
     if (moveTouch?.id === event.pointerId) {
       moveTouch = null;
+      resetPadAnchor(movePad);
       changed = true;
     }
 
     if (aimTouch?.id === event.pointerId) {
       aimTouch = null;
+      resetPadAnchor(aimPad);
       changed = true;
     }
 
@@ -301,11 +330,35 @@ export function createInputController(target: HTMLDivElement): InputController {
   };
 
   const getTouchMove = (): Vec2 => {
-    const vector = getPadVector(moveTouch, movePad);
-
-    return {
+    const vector = getPadVector(moveTouch);
+    const normalized = {
       x: vector.x / TOUCH_STICK_RADIUS,
       y: vector.y / TOUCH_STICK_RADIUS
+    };
+    const magnitude = Math.hypot(normalized.x, normalized.y);
+
+    if (magnitude < TOUCH_MOVE_DEADZONE) {
+      return { x: 0, y: 0 };
+    }
+
+    return normalized;
+  };
+
+  const getTouchAim = (origin: Vec2): Vec2 | null => {
+    const vector = getPadVector(aimTouch);
+    const normalized = {
+      x: vector.x / TOUCH_STICK_RADIUS,
+      y: vector.y / TOUCH_STICK_RADIUS
+    };
+    const magnitude = Math.hypot(normalized.x, normalized.y);
+
+    if (magnitude < TOUCH_AIM_DEADZONE) {
+      return null;
+    }
+
+    return {
+      x: origin.x + (normalized.x / magnitude) * TOUCH_AIM_DISTANCE,
+      y: origin.y + (normalized.y / magnitude) * TOUCH_AIM_DISTANCE
     };
   };
 
@@ -330,7 +383,7 @@ export function createInputController(target: HTMLDivElement): InputController {
       mousePrimaryHeld = false;
       clearTouchState();
     },
-    createSnapshot: (resolver, fallbackAim) => {
+    createSnapshot: (resolver, fallbackAim, touchAimOrigin) => {
       const keyboardMove = {
         x: (pressedKeys.has("KeyD") ? 1 : 0) - (pressedKeys.has("KeyA") ? 1 : 0),
         y: (pressedKeys.has("KeyS") ? 1 : 0) - (pressedKeys.has("KeyW") ? 1 : 0)
@@ -340,8 +393,11 @@ export function createInputController(target: HTMLDivElement): InputController {
         x: keyboardMove.x + touchMove.x,
         y: keyboardMove.y + touchMove.y
       };
-      const resolvedAim =
-        resolver(pointerPosition.x, pointerPosition.y) ?? fallbackAim;
+      const resolvedTouchAim =
+        aimTouch && touchAimOrigin ? getTouchAim(touchAimOrigin) : null;
+      const resolvedAim = aimTouch
+        ? resolvedTouchAim ?? fallbackAim
+        : resolver(pointerPosition.x, pointerPosition.y) ?? fallbackAim;
       const dashPressed = dashQueued;
       dashQueued = false;
 
