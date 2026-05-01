@@ -6,6 +6,12 @@ export interface OrbPickup {
   velocity: Vec2;
 }
 
+export interface MoneyPickup {
+  amount: number;
+  position: Vec2;
+  velocity: Vec2;
+}
+
 export interface RescuePickup {
   duration: number;
   position: Vec2;
@@ -15,6 +21,14 @@ export interface RescuePickup {
 
 export function createOrbPickup(position: Vec2): OrbPickup {
   return {
+    position: { ...position },
+    velocity: { x: 0, y: 0 }
+  };
+}
+
+export function createMoneyPickup(position: Vec2, amount: number): MoneyPickup {
+  return {
+    amount,
     position: { ...position },
     velocity: { x: 0, y: 0 }
   };
@@ -31,6 +45,15 @@ export function createRescuePickup(position: Vec2): RescuePickup {
 
 export function getOrbPositions(orbs: OrbPickup[]): Vec2[] {
   return orbs.map((orb) => ({ ...orb.position }));
+}
+
+export function getMoneySnapshots(
+  pickups: MoneyPickup[]
+): Array<{ amount: number; position: Vec2 }> {
+  return pickups.map((pickup) => ({
+    amount: pickup.amount,
+    position: { ...pickup.position }
+  }));
 }
 
 export function getRescueSnapshots(
@@ -70,6 +93,35 @@ export function updateOrbPickups(
   }
 
   return collectedPositions;
+}
+
+export function updateMoneyPickups(
+  pickups: MoneyPickup[],
+  player: PlayerState,
+  deltaSeconds: number
+): Array<{ amount: number; position: Vec2 }> {
+  const collected: Array<{ amount: number; position: Vec2 }> = [];
+
+  for (let index = pickups.length - 1; index >= 0; index -= 1) {
+    const pickup = pickups[index];
+    const toPlayer = subtract(player.position, pickup.position);
+    const playerDistance = distance(pickup.position, player.position);
+
+    if (playerDistance < player.orbPickupRadius) {
+      collected.push({
+        amount: pickup.amount,
+        position: { ...pickup.position }
+      });
+      pickups.splice(index, 1);
+      continue;
+    }
+
+    const magnetAlpha = clamp(1 - playerDistance / 6.4, 0, 1);
+    pickup.velocity = scale(toPlayer, magnetAlpha * 2.45 * deltaSeconds);
+    pickup.position = add(pickup.position, pickup.velocity);
+  }
+
+  return collected;
 }
 
 export function updateRescuePickups(

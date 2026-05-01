@@ -1,11 +1,13 @@
 import * as THREE from "three";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+import { FontLoader } from "three/addons/loaders/FontLoader.js";
+import helvetikerBold from "three/examples/fonts/helvetiker_bold.typeface.json";
 import { GAME_CONFIG } from "../core/config";
 import {
   CHANNEL_AVATAR_ATLAS_COLUMNS,
   CHANNEL_AVATAR_ATLAS_ROWS,
   getChannelAvatarAtlasIndex,
-  getChannelAvatarCellIndex,
-  getChannelAvatarIndex
+  getChannelAvatarCellIndex
 } from "../gameplay/channelLore";
 import type { FrameEvent } from "../gameplay/events";
 import { createCamera, updateFollowCamera } from "./camera";
@@ -30,8 +32,9 @@ type EnemyLike = {
   supported: boolean;
 };
 type PickupLike = {
+  amount?: number;
   boosted?: boolean;
-  kind: "orb" | "rescue";
+  kind: "money" | "orb" | "rescue";
   position: Vec2Like;
   progress?: number;
 };
@@ -85,15 +88,153 @@ type PlayerVisuals = {
     | "zero-point-capacitor"
     | null;
 };
-export type EnemyAvatarMode = "floor" | "hidden" | "top";
 
 const UP_VECTOR = new THREE.Vector3(0, 1, 0);
 const GROUND_PLANE = new THREE.Plane(UP_VECTOR, 0);
 const PLAYER_HEALTH_BAR_WIDTH = 1.38;
 const PLAYER_HEALTH_BAR_HEIGHT = 0.12;
+const MONEY_FONT = new FontLoader().parse(helvetikerBold);
 
 function getRenderPixelRatio(): number {
   return Math.min(window.devicePixelRatio || 1, GAME_CONFIG.maxPixelRatio);
+}
+
+function createMoneyTextGeometry(): TextGeometry {
+  const geometry = new TextGeometry("$", {
+    bevelEnabled: true,
+    bevelSegments: 2,
+    bevelSize: 0.012,
+    bevelThickness: 0.018,
+    curveSegments: 10,
+    depth: 0.12,
+    font: MONEY_FONT,
+    size: 0.78
+  });
+  geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  if (box) {
+    geometry.translate(
+      -(box.min.x + box.max.x) * 0.5,
+      -(box.min.y + box.max.y) * 0.5,
+      -0.06
+    );
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function createPickupView(): PickupView {
+  const root = new THREE.Group();
+
+  const orbMaterial = createNeonMaterial("#31f5ff", 2.2);
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), orbMaterial);
+  root.add(orb);
+
+  const haloMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#31f5ff",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.34, 0.018, 8, 30),
+    haloMaterial
+  );
+  halo.rotation.x = Math.PI / 2;
+  halo.visible = false;
+  root.add(halo);
+
+  const rescueBadgeMaterial = createNeonMaterial("#fff3c4", 2.4);
+  rescueBadgeMaterial.transparent = true;
+  rescueBadgeMaterial.opacity = 0;
+  rescueBadgeMaterial.depthWrite = false;
+  const rescueBadge = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.34, 0.34),
+    rescueBadgeMaterial
+  );
+  rescueBadge.position.y = 0.02;
+  rescueBadge.visible = false;
+  root.add(rescueBadge);
+
+  const moneyRig = new THREE.Group();
+  moneyRig.visible = false;
+
+  const moneyBackplateMaterial = new THREE.MeshStandardMaterial({
+    color: "#153b2f",
+    emissive: "#96ff47",
+    emissiveIntensity: 1.6,
+    metalness: 0.42,
+    opacity: 0.72,
+    roughness: 0.22,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const moneyBackplate = new THREE.Mesh(
+    new THREE.CircleGeometry(0.56, 48),
+    moneyBackplateMaterial
+  );
+  moneyBackplate.position.z = -0.08;
+
+  const moneyRingMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#96ff47",
+    depthWrite: false,
+    opacity: 0.45,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const moneyRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.63, 0.018, 10, 52),
+    moneyRingMaterial
+  );
+  moneyRing.position.z = -0.03;
+
+  const moneyTextGeometry = createMoneyTextGeometry();
+  const moneyTextMaterial = new THREE.MeshStandardMaterial({
+    color: "#ecfff2",
+    emissive: "#96ff47",
+    emissiveIntensity: 3.8,
+    metalness: 0.35,
+    roughness: 0.18
+  });
+  const moneyText = new THREE.Mesh(moneyTextGeometry, moneyTextMaterial);
+  moneyText.position.z = 0.035;
+
+  const moneyGlowMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#96ff47",
+    depthWrite: false,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const moneyGlow = new THREE.Mesh(moneyTextGeometry.clone(), moneyGlowMaterial);
+  moneyGlow.position.z = 0.005;
+  moneyGlow.scale.setScalar(1.12);
+
+  moneyRig.add(moneyBackplate, moneyRing, moneyGlow, moneyText);
+  root.add(moneyRig);
+
+  return {
+    halo,
+    haloMaterial,
+    moneyBackplate,
+    moneyBackplateMaterial,
+    moneyGlow,
+    moneyGlowMaterial,
+    moneyRig,
+    moneyRing,
+    moneyRingMaterial,
+    moneyText,
+    moneyTextMaterial,
+    orb,
+    orbMaterial,
+    rescueBadge,
+    rescueBadgeMaterial,
+    root
+  };
 }
 
 export interface GameScene {
@@ -108,7 +249,6 @@ export interface GameScene {
   setBossPulses: (pulses: BossPulseLike[]) => void;
   setArenaPurgeLanes: (purges: ArenaPurgeLike[]) => void;
   setAimPoint: (aimPoint: Vec2Like | null) => void;
-  setEnemyAvatarMode: (mode: EnemyAvatarMode) => void;
   setEnemies: (enemies: EnemyLike[]) => void;
   setPickups: (pickups: PickupLike[]) => void;
   setPlayerPose: (position: Vec2Like, facing: Vec2Like) => void;
@@ -124,8 +264,13 @@ interface EnemyView {
   attackBeacon: THREE.Mesh;
   attackBeaconMaterial: THREE.MeshBasicMaterial;
   archetype: EnemyLike["archetype"];
+  avatarBackplateMaterial: THREE.MeshBasicMaterial;
   avatarDisc: THREE.Mesh;
+  avatarFrameMaterial: THREE.MeshBasicMaterial;
   avatarMaterial: THREE.MeshBasicMaterial;
+  avatarRig: THREE.Group;
+  avatarScanline: THREE.Mesh;
+  avatarScanlineMaterial: THREE.MeshBasicMaterial;
   bodyMaterial: THREE.MeshStandardMaterial;
   droneRotors: THREE.Group[];
   eliteHalo: THREE.Mesh;
@@ -169,6 +314,18 @@ interface EffectParticle {
   maxLife: number;
   mesh: THREE.Mesh;
   velocity: THREE.Vector3;
+}
+
+interface FloatingMoneyValue {
+  active: boolean;
+  baseY: number;
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  life: number;
+  material: THREE.MeshBasicMaterial;
+  maxLife: number;
+  root: THREE.Group;
+  texture: THREE.CanvasTexture;
 }
 
 interface PlayerDebris {
@@ -239,6 +396,25 @@ interface RangedTraceView {
 interface BossPulseView {
   material: THREE.MeshBasicMaterial;
   mesh: THREE.Mesh;
+}
+
+interface PickupView {
+  halo: THREE.Mesh;
+  haloMaterial: THREE.MeshBasicMaterial;
+  moneyBackplate: THREE.Mesh;
+  moneyBackplateMaterial: THREE.MeshStandardMaterial;
+  moneyGlow: THREE.Mesh;
+  moneyGlowMaterial: THREE.MeshBasicMaterial;
+  moneyRig: THREE.Group;
+  moneyRing: THREE.Mesh;
+  moneyRingMaterial: THREE.MeshBasicMaterial;
+  moneyText: THREE.Mesh;
+  moneyTextMaterial: THREE.MeshStandardMaterial;
+  orb: THREE.Mesh;
+  orbMaterial: THREE.MeshStandardMaterial;
+  rescueBadge: THREE.Mesh;
+  rescueBadgeMaterial: THREE.MeshStandardMaterial;
+  root: THREE.Group;
 }
 
 interface ArtilleryStrikeView {
@@ -564,6 +740,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const particleRoot = new THREE.Group();
   scene.add(particleRoot);
 
+  const floatingMoneyRoot = new THREE.Group();
+  scene.add(floatingMoneyRoot);
+
   const killGridMaterials: THREE.MeshBasicMaterial[] = [];
   const purgeLaneMaterials: THREE.MeshBasicMaterial[] = [];
   const purgeLaneStates: Array<ArenaPurgeLike | undefined> = [
@@ -655,7 +834,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     relay: [],
     sentry: []
   };
-  let pickupMeshes: THREE.Mesh[] = [];
+  let pickupViews: PickupView[] = [];
   let projectileMeshes: THREE.Mesh[] = [];
   let artilleryStrikeViews: ArtilleryStrikeView[] = [];
   let bossPulseViews: BossPulseView[] = [];
@@ -670,6 +849,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   const particlePool = Array.from({ length: 192 }, () =>
     createEffectParticle(particleRoot)
   );
+  const floatingMoneyPool = Array.from({ length: 24 }, () =>
+    createFloatingMoneyValue(floatingMoneyRoot)
+  );
   const enemyDeathShardPool = createEnemyDeathShardPool(enemyDeathShardRoot);
   const channelObituaryPool = Array.from({ length: 14 }, () =>
     createChannelObituaryView(channelObituaryRoot, channelAvatarAtlases[0])
@@ -681,7 +863,6 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   let arenaBreachPulse = 0;
   let cameraShake = 0;
   let chapterPulse = 0;
-  let enemyAvatarMode: EnemyAvatarMode = "top";
   let reducedMotion = false;
   let dashEchoCooldown = 0;
   let playerDestructionTime = 0;
@@ -742,14 +923,11 @@ export function createGameScene(container: HTMLDivElement): GameScene {
   };
 
   const ensurePickupMeshes = (count: number): void => {
-    while (pickupMeshes.length < count) {
-      const mesh = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(0.18, 0),
-        createNeonMaterial("#31f5ff", 2.2)
-      );
-      mesh.visible = false;
-      pickupRoot.add(mesh);
-      pickupMeshes.push(mesh);
+    while (pickupViews.length < count) {
+      const view = createPickupView();
+      view.root.visible = false;
+      pickupRoot.add(view.root);
+      pickupViews.push(view);
     }
   };
 
@@ -950,6 +1128,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     obituary.root.userData.spinOffset = Math.random() * Math.PI * 2;
     obituary.avatarMaterial.opacity = 1;
     obituary.labelMaterial.opacity = 1;
+    obituary.ringMaterial.color.set(getEnemyEventColor(event, "accent"));
     obituary.ringMaterial.opacity = 0.74;
     applyChannelAvatar(
       obituary.avatar,
@@ -1224,6 +1403,165 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     }
   };
 
+  const spawnCardPurgeSignature = (position: Vec2Like): void => {
+    const rayCount = reducedMotion ? 4 : 8;
+    for (let index = 0; index < rayCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / rayCount;
+      spawnRangedTrace(
+        position,
+        { x: Math.sin(angle), y: Math.cos(angle) },
+        5.2 + (index % 2) * 1.3,
+        index % 2 === 0 ? "overseer" : "artillery"
+      );
+    }
+    spawnGroundDecal(position, "#ffffff", 5.6, 0.72, 0.26);
+    spawnGroundDecal(position, "#ff314f", 12.2, 1.12, 0.2);
+  };
+
+  const spawnCardRepairSignature = (position: Vec2Like): void => {
+    for (let index = 0; index < 4; index += 1) {
+      spawnGroundDecal(
+        position,
+        index % 2 === 0 ? "#72ffd5" : "#31f5ff",
+        2.2 + index * 1.35,
+        0.64 + index * 0.16,
+        0.18 - index * 0.02
+      );
+    }
+    for (const direction of [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 }
+    ]) {
+      spawnRangedTrace(position, direction, 2.7, "arc");
+    }
+  };
+
+  const spawnCardOvercoreSignature = (position: Vec2Like): void => {
+    const rayCount = reducedMotion ? 3 : 6;
+    for (let index = 0; index < rayCount; index += 1) {
+      const angle = (Math.PI * 2 * index) / rayCount + Math.PI / 6;
+      spawnRangedTrace(
+        position,
+        { x: Math.sin(angle), y: Math.cos(angle) },
+        3.9 + Math.sin(index) * 0.45,
+        "satellite"
+      );
+    }
+    spawnGroundDecal(position, "#fff0cb", 3.8, 0.72, 0.24);
+    spawnGroundDecal(position, "#ffb84a", 7.4, 1.08, 0.2);
+    spawnGroundDecal(position, "#96ff47", 9.4, 1.32, 0.13);
+  };
+
+  const spawnEnemyDeathSignature = (event: FrameEvent): void => {
+    const archetype = event.enemyArchetype ?? "drone";
+    const bodyColor = getEnemyEventColor(event, "body");
+    const accentColor = getEnemyEventColor(event, "accent");
+    const burstScale = event.isElite ? 1.24 : 1;
+
+    if (archetype === "charger") {
+      spawnGroundDecal(event.position, bodyColor, 1.65 * burstScale, 0.9, 0.18);
+      for (const side of [-1, 1]) {
+        spawnRangedTrace(
+          event.position,
+          { x: side * 0.72, y: 0.7 },
+          2.4 * burstScale,
+          "comet"
+        );
+      }
+      return;
+    }
+
+    if (archetype === "sentry") {
+      for (let index = 0; index < 4; index += 1) {
+        const angle = (Math.PI * 2 * index) / 4 + Math.PI / 4;
+        spawnRangedTrace(
+          event.position,
+          { x: Math.sin(angle), y: Math.cos(angle) },
+          2.15 * burstScale,
+          "sentry"
+        );
+      }
+      spawnGroundDecal(event.position, accentColor, 1.2 * burstScale, 0.74, 0.16);
+      return;
+    }
+
+    if (archetype === "artillery") {
+      cameraShake = Math.max(cameraShake, 0.12 * burstScale);
+      emitParticleBurst(
+        event.position,
+        "#ffd2e5",
+        event.isElite ? 18 : 12,
+        4.4 * burstScale,
+        0.46,
+        [0.08, 0.2]
+      );
+      spawnGroundDecal(event.position, "#ff648f", 2.25 * burstScale, 1.1, 0.22);
+      spawnGroundDecal(event.position, "#ffd2e5", 1.2 * burstScale, 0.72, 0.18);
+      return;
+    }
+
+    if (archetype === "relay") {
+      for (let index = 0; index < 3; index += 1) {
+        spawnGroundDecal(
+          event.position,
+          index % 2 === 0 ? "#72ffd5" : "#fff0cb",
+          (1.2 + index * 0.72) * burstScale,
+          0.85 + index * 0.16,
+          0.16 - index * 0.025
+        );
+      }
+      emitParticleBurst(
+        event.position,
+        "#fff0cb",
+        event.isElite ? 14 : 9,
+        3.2 * burstScale,
+        0.42,
+        [0.06, 0.15]
+      );
+      return;
+    }
+
+    if (archetype === "overseer") {
+      spawnGroundDecal(event.position, "#ffffff", 3.2 * burstScale, 1.2, 0.28);
+      spawnGroundDecal(event.position, "#ff4fd8", 4.6 * burstScale, 1.5, 0.18);
+      return;
+    }
+
+    for (let index = 0; index < 4; index += 1) {
+      const angle = (Math.PI * 2 * index) / 4 + Math.random() * 0.18;
+      spawnRangedTrace(
+        event.position,
+        { x: Math.sin(angle), y: Math.cos(angle) },
+        1.6 * burstScale,
+        "drone"
+      );
+    }
+    spawnGroundDecal(event.position, bodyColor, 0.9 * burstScale, 0.62, 0.14);
+  };
+
+  const spawnFloatingMoneyValue = (event: FrameEvent): void => {
+    const amount = Math.max(0, Math.round(event.amount ?? 0));
+    if (amount <= 0) {
+      return;
+    }
+
+    const view =
+      floatingMoneyPool.find((candidate) => !candidate.active) ??
+      floatingMoneyPool[0];
+    view.active = true;
+    view.life = reducedMotion ? 0.82 : 1.04;
+    view.maxLife = view.life;
+    view.baseY = 0.86;
+    view.root.visible = true;
+    view.root.position.set(event.position.x, view.baseY, event.position.y);
+    view.root.quaternion.copy(camera.quaternion);
+    view.root.scale.setScalar(0.72);
+    view.material.opacity = 1;
+    drawFloatingMoneyValue(view, amount);
+  };
+
   return {
     camera,
     emitEffects: (events) => {
@@ -1421,6 +1759,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
               { core: "#ffffff", primary: "#ff648f", secondary: "#ff4fd8" },
               1.35
             );
+            spawnCardPurgeSignature(event.position);
             emitParticleBurst(
               event.position,
               "#ffffff",
@@ -1457,6 +1796,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
               { core: "#ffffff", primary: "#72ffd5", secondary: "#31f5ff" },
               0.92
             );
+            spawnCardRepairSignature(event.position);
             emitParticleBurst(
               event.position,
               "#72ffd5",
@@ -1485,6 +1825,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
               { core: "#fff0cb", primary: "#ffb84a", secondary: "#96ff47" },
               1.05
             );
+            spawnCardOvercoreSignature(event.position);
             emitParticleBurst(
               event.position,
               "#ffb84a",
@@ -1734,6 +2075,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
           }
           case "enemy-killed":
             spawnEnemyDeathBreakup(event);
+            spawnEnemyDeathSignature(event);
             spawnChannelObituary(event);
             emitParticleBurst(
               event.position,
@@ -1892,6 +2234,18 @@ export function createGameScene(container: HTMLDivElement): GameScene {
               [0.06, 0.12]
             );
             break;
+          case "money-collected":
+            spawnFloatingMoneyValue(event);
+            emitParticleBurst(
+              event.position,
+              "#96ff47",
+              7,
+              2.35,
+              0.3,
+              [0.06, 0.12]
+            );
+            spawnGroundDecal(event.position, "#96ff47", 0.86, 0.42, 0.12);
+            break;
           case "player-hit":
             cameraShake = Math.max(cameraShake, 0.16);
             emitParticleBurst(
@@ -1979,6 +2333,9 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         chapterHotBackground,
         arenaChapterBlend
       );
+      const dangerPulse =
+        arenaDangerLevel *
+        (0.72 + Math.sin(sceneTime * (arenaDangerLevel > 0.55 ? 8.5 : 4.8)) * 0.28);
       sceneFog.color.lerpColors(chapterColdFog, chapterHotFog, arenaChapterBlend);
       arenaMaterial.color.lerpColors(chapterColdArena, chapterHotArena, arenaChapterBlend);
       arenaMaterial.emissive.lerpColors(
@@ -1989,8 +2346,16 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       arenaMaterial.emissiveIntensity =
         0.9 +
         arenaChapterBlend * 0.55 +
+        dangerPulse * 0.42 +
         ritualPulse * 0.3 * motionScale +
         collapsePulse * 0.9 * motionScale;
+      arena.scale.setScalar(
+        1 +
+          dangerPulse * 0.004 +
+          chapterPulse * 0.003 * motionScale +
+          collapsePulse * 0.012 * motionScale
+      );
+      grid.scale.setScalar(1 + dangerPulse * 0.003);
       keyLight.color.lerpColors(chapterColdKey, chapterHotKey, arenaChapterBlend);
       keyLight.intensity = 1.9 + collapsePulse * 0.38 * motionScale;
       magentaAccent.color.lerpColors(
@@ -2009,8 +2374,11 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         arenaChapterBlend
       );
       warningRingMaterial.emissive.copy(warningRingMaterial.color);
-      ring.rotation.z += reducedMotion ? 0.00035 : 0.0015;
-      ring.scale.setScalar(1 + collapsePulse * 0.05 * motionScale);
+      ring.rotation.z +=
+        reducedMotion ? 0.00035 : 0.0015 + dangerPulse * 0.002;
+      ring.scale.setScalar(
+        1 + dangerPulse * 0.012 + collapsePulse * 0.05 * motionScale
+      );
       ringMaterial.emissiveIntensity =
         1.4 +
         arenaDangerLevel * 1.3 +
@@ -2025,7 +2393,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         collapsePulse * 1.2 * motionScale;
       warningRing.scale.setScalar(
         1 +
-          arenaDangerLevel * 0.018 +
+          arenaDangerLevel * 0.024 +
           ritualPulse * 0.02 * motionScale +
           collapsePulse * 0.08 * motionScale
       );
@@ -2369,14 +2737,29 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         dashEchoCooldown = 0.036;
       }
 
-      for (let index = 0; index < pickupMeshes.length; index += 1) {
-        const mesh = pickupMeshes[index];
-        if (!mesh.visible) {
+      for (let index = 0; index < pickupViews.length; index += 1) {
+        const view = pickupViews[index];
+        if (!view.root.visible) {
           continue;
         }
 
-        mesh.position.y = 0.24 + Math.sin(sceneTime * 5.2 + index * 0.9) * 0.06;
-        mesh.scale.setScalar(0.92 + Math.sin(sceneTime * 7 + index) * 0.08);
+        const pickupKind = view.root.userData.pickupKind as PickupLike["kind"] | undefined;
+        view.root.position.y =
+          pickupKind === "money"
+            ? 0.42 + Math.sin(sceneTime * 5.8 + index * 0.9) * 0.08
+            : pickupKind === "rescue"
+              ? 0.36 + Math.sin(sceneTime * 5.2 + index * 0.9) * 0.06
+              : 0.26 + Math.sin(sceneTime * 5.2 + index * 0.9) * 0.06;
+        view.root.scale.setScalar(
+          pickupKind === "money"
+            ? 0.98 + Math.sin(sceneTime * 7.8 + index) * 0.09
+            : 0.92 + Math.sin(sceneTime * 7 + index) * 0.08
+        );
+        if (pickupKind === "money") {
+          view.moneyRig.quaternion.copy(camera.quaternion);
+          view.moneyRing.rotation.z -= 0.09;
+          view.moneyBackplate.rotation.z += 0.045;
+        }
       }
 
       for (let index = 0; index < projectileMeshes.length; index += 1) {
@@ -2542,6 +2925,28 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         obituary.ring.rotation.z += renderDeltaSeconds * 2.2;
       }
 
+      for (const value of floatingMoneyPool) {
+        if (!value.active) {
+          continue;
+        }
+
+        value.life = Math.max(0, value.life - renderDeltaSeconds);
+        if (value.life <= 0) {
+          value.active = false;
+          value.root.visible = false;
+          continue;
+        }
+
+        const lifeRatio = value.life / value.maxLife;
+        const progress = 1 - lifeRatio;
+        const lift = reducedMotion ? progress * 0.18 : progress * 0.82;
+        const scalePop = 1 + Math.sin(Math.min(1, progress * 2.1) * Math.PI) * 0.16;
+        value.root.position.y = value.baseY + lift;
+        value.root.quaternion.copy(camera.quaternion);
+        value.root.scale.setScalar((0.72 + progress * 0.1) * scalePop);
+        value.material.opacity = Math.min(1, lifeRatio * 1.45);
+      }
+
       for (const decal of decalPool) {
         if (!decal.active) {
           continue;
@@ -2664,9 +3069,6 @@ export function createGameScene(container: HTMLDivElement): GameScene {
       reticle.visible = true;
       reticle.position.set(aimPoint.x, 0.03, aimPoint.y);
     },
-    setEnemyAvatarMode: (mode) => {
-      enemyAvatarMode = mode;
-    },
     setEnemies: (enemies) => {
       activeEnemyIds.clear();
 
@@ -2745,9 +3147,15 @@ export function createGameScene(container: HTMLDivElement): GameScene {
               ? 1.03
             : enemy.archetype === "sentry"
               ? 0.98
+            : enemy.archetype === "drone"
+              ? 1.08
               : 1) * (enemy.isElite ? 1.06 : 1);
         const spawnScale = 0.68 + enemy.spawnRatio * 0.32;
         const spawnLift = (1 - enemy.spawnRatio) * 0.42;
+        const droneHover =
+          enemy.archetype === "drone"
+            ? 0.18 + Math.sin(sceneTime * 6.5 + enemy.id) * 0.045
+            : 0;
         const exposedLift =
           enemy.mode === "exposed" ? 0.14 + Math.sin(sceneTime * 18) * 0.05 : 0;
         const exposedScalePulse =
@@ -2756,7 +3164,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
         view.root.visible = true;
         view.root.position.set(
           enemy.position.x,
-          spawnLift + exposedLift,
+          spawnLift + exposedLift + droneHover,
           enemy.position.y
         );
         view.root.rotation.y = Math.atan2(enemy.facing.x, enemy.facing.y);
@@ -2810,21 +3218,11 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             : enemy.mode === "windup" || enemy.mode === "aim"
               ? 2.1
               : 1.2;
-        const avatarVisible = enemy.archetype !== "overseer" && enemyAvatarMode !== "hidden";
-        view.avatarDisc.visible = avatarVisible;
-        if (avatarVisible) {
-          if (view.avatarDisc.userData.avatarSeed !== enemy.id) {
-            applyChannelAvatar(
-              view.avatarDisc,
-              view.avatarMaterial,
-              channelAvatarAtlases,
-              getChannelAvatarIndex(enemy.id)
-            );
-            view.avatarDisc.userData.avatarSeed = enemy.id;
-          }
-          updateEnemyAvatarDisc(view, enemy, enemyAvatarMode, camera, sceneTime);
-          view.avatarMaterial.opacity = 1;
-        }
+        view.avatarRig.visible = false;
+        view.avatarMaterial.opacity = 0;
+        view.avatarBackplateMaterial.opacity = 0;
+        view.avatarFrameMaterial.opacity = 0;
+        view.avatarScanlineMaterial.opacity = 0;
         view.attackBeacon.visible = isAttackState || enemy.mode === "exposed";
         if (view.attackBeacon.visible) {
           const attackPulse =
@@ -3157,7 +3555,7 @@ export function createGameScene(container: HTMLDivElement): GameScene {
 
           for (let index = 0; index < view.telegraph.chevrons.length; index += 1) {
             const chevron = view.telegraph.chevrons[index];
-            chevron.visible = !lineTelegraph && !areaTelegraph;
+            chevron.visible = !areaTelegraph;
             const ratio = (index + 1) / (view.telegraph.chevrons.length + 1);
             const wave =
               0.82 +
@@ -3165,16 +3563,22 @@ export function createGameScene(container: HTMLDivElement): GameScene {
                 0.18;
             chevron.position.set(0, 0.004, finalLength * ratio);
             chevron.scale.set(
-              Math.max(0.24, finalWidth * (bossTelegraph ? 0.48 : 0.38)) *
+              Math.max(
+                lineTelegraph ? 0.16 : 0.24,
+                finalWidth * (bossTelegraph ? 0.48 : lineTelegraph ? 0.26 : 0.38)
+              ) *
                 wave,
-              Math.max(0.28, finalWidth * (bossTelegraph ? 0.58 : 0.48)) *
+              Math.max(
+                lineTelegraph ? 0.2 : 0.28,
+                finalWidth * (bossTelegraph ? 0.58 : lineTelegraph ? 0.34 : 0.48)
+              ) *
                 wave,
               1
             );
           }
           view.telegraph.chevronMaterial.color.set(telegraphColor);
           view.telegraph.chevronMaterial.opacity =
-            (bossTelegraph ? 0.34 : chargeTelegraph ? 0.26 : 0.08) *
+            (bossTelegraph ? 0.34 : chargeTelegraph ? 0.26 : lineTelegraph ? 0.2 : 0.08) *
               telegraphIntensity +
             0.09 * telegraphPulse;
         }
@@ -3189,19 +3593,28 @@ export function createGameScene(container: HTMLDivElement): GameScene {
     setPickups: (pickups) => {
       ensurePickupMeshes(pickups.length);
 
-      for (let index = 0; index < pickupMeshes.length; index += 1) {
-        const mesh = pickupMeshes[index];
+      for (let index = 0; index < pickupViews.length; index += 1) {
+        const view = pickupViews[index];
         const pickup = pickups[index];
-        const material = mesh.material as THREE.MeshStandardMaterial;
 
         if (!pickup) {
-          mesh.visible = false;
+          view.root.visible = false;
           continue;
         }
 
-        mesh.visible = true;
-        mesh.position.set(pickup.position.x, 0.28, pickup.position.y);
-        mesh.rotation.y += pickup.kind === "rescue" ? 0.12 : 0.08;
+        view.root.visible = true;
+        view.root.userData.pickupKind = pickup.kind;
+        view.root.position.set(
+          pickup.position.x,
+          pickup.kind === "money" ? 0.42 : pickup.kind === "rescue" ? 0.36 : 0.26,
+          pickup.position.y
+        );
+        if (pickup.kind === "money") {
+          view.root.rotation.set(0, 0, 0);
+        } else {
+          view.root.rotation.y += pickup.kind === "rescue" ? 0.08 : 0.06;
+          view.root.rotation.x = pickup.kind === "rescue" ? 0.18 : 0;
+        }
         if (pickup.kind === "rescue") {
           const urgency = pickup.progress ?? 0;
           const blink = 0.7 + Math.sin(sceneTime * 10 + index * 0.8) * 0.3;
@@ -3209,22 +3622,71 @@ export function createGameScene(container: HTMLDivElement): GameScene {
             (pickup.boosted ? 1.18 : 1.04) +
             urgency * (pickup.boosted ? 0.3 : 0.22) +
             blink * 0.06;
-          mesh.scale.setScalar(pulse);
-          material.color.set(pickup.boosted ? "#d9fff3" : "#fff3c4");
-          material.emissive.set(
+          view.root.scale.setScalar(pulse);
+          view.orb.visible = true;
+          view.orbMaterial.color.set(pickup.boosted ? "#d9fff3" : "#fff3c4");
+          view.orbMaterial.emissive.set(
             pickup.boosted
               ? "#72ffd5"
               : urgency > 0.7
                 ? "#ff648f"
                 : "#96ff47"
           );
-          material.emissiveIntensity =
+          view.orbMaterial.emissiveIntensity =
             (pickup.boosted ? 3.2 : 2.4) + urgency * 0.8;
+          view.halo.visible = true;
+          view.halo.rotation.z += 0.12;
+          view.halo.scale.setScalar(1.06 + urgency * 0.48 + blink * 0.08);
+          view.haloMaterial.color.set(pickup.boosted ? "#72ffd5" : "#fff3c4");
+          view.haloMaterial.opacity = 0.42 + urgency * 0.22;
+          view.rescueBadge.visible = true;
+          view.rescueBadge.rotation.z = Math.sin(sceneTime * 4.8 + index) * 0.12;
+          view.rescueBadgeMaterial.color.set(pickup.boosted ? "#d9fff3" : "#fff3c4");
+          view.rescueBadgeMaterial.emissive.set(
+            pickup.boosted ? "#72ffd5" : "#96ff47"
+          );
+          view.rescueBadgeMaterial.emissiveIntensity =
+            (pickup.boosted ? 3.4 : 2.6) + urgency * 0.9;
+          view.rescueBadgeMaterial.opacity = 0.95;
+          view.moneyRig.visible = false;
+        } else if (pickup.kind === "money") {
+          const valuePulse = Math.min(1, (pickup.amount ?? 1) / 18);
+          const blink = 0.72 + Math.sin(sceneTime * 8.5 + index) * 0.28;
+          view.root.scale.setScalar(1.02 + valuePulse * 0.16 + blink * 0.05);
+          view.orb.visible = false;
+          view.rescueBadge.visible = false;
+          view.rescueBadgeMaterial.opacity = 0;
+          view.moneyRig.visible = true;
+          view.moneyRig.quaternion.copy(camera.quaternion);
+          view.moneyTextMaterial.color.set("#ecfff2");
+          view.moneyTextMaterial.emissive.set("#96ff47");
+          view.moneyTextMaterial.emissiveIntensity = 3.8 + valuePulse * 1.2;
+          view.moneyGlowMaterial.opacity = 0.32 + blink * 0.22;
+          view.moneyRing.visible = true;
+          view.moneyRing.scale.setScalar(1 + valuePulse * 0.18 + blink * 0.05);
+          view.moneyRingMaterial.opacity = 0.38 + blink * 0.24;
+          view.moneyBackplate.visible = true;
+          view.moneyBackplateMaterial.emissiveIntensity = 1.6 + valuePulse * 0.9;
+          view.halo.visible = true;
+          view.halo.rotation.z -= 0.13;
+          view.halo.scale.setScalar(1.12 + valuePulse * 0.22 + blink * 0.08);
+          view.haloMaterial.color.set("#96ff47");
+          view.haloMaterial.opacity = 0.3 + blink * 0.18;
         } else {
-          mesh.scale.setScalar(1);
-          material.color.set("#31f5ff");
-          material.emissive.set("#31f5ff");
-          material.emissiveIntensity = 2.2;
+          const orbPulse = 0.92 + Math.sin(sceneTime * 5.4 + index) * 0.06;
+          view.root.scale.setScalar(orbPulse);
+          view.orb.visible = true;
+          view.orbMaterial.color.set("#31f5ff");
+          view.orbMaterial.emissive.set("#31f5ff");
+          view.orbMaterial.emissiveIntensity = 2.2;
+          view.halo.visible = true;
+          view.halo.rotation.z -= 0.09;
+          view.halo.scale.setScalar(0.88 + Math.sin(sceneTime * 3.2 + index) * 0.08);
+          view.haloMaterial.color.set("#31f5ff");
+          view.haloMaterial.opacity = 0.24;
+          view.rescueBadge.visible = false;
+          view.rescueBadgeMaterial.opacity = 0;
+          view.moneyRig.visible = false;
         }
       }
     },
@@ -3478,10 +3940,25 @@ function createEnemyView(
     1.6
   );
   const ringMaterial = createNeonMaterial("#ffffff", 1.1);
+  const avatarRadius = archetype === "overseer" ? 0.62 : 0.52;
   const avatarGeometry = new THREE.CircleGeometry(
-    archetype === "overseer" ? 0.62 : 0.56,
+    avatarRadius,
     34
   );
+  const avatarRig = new THREE.Group();
+  avatarRig.visible = false;
+  const avatarBackplateMaterial = new THREE.MeshBasicMaterial({
+    color: "#071321",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const avatarBackplate = new THREE.Mesh(
+    new THREE.CircleGeometry(avatarRadius * 1.18, 34),
+    avatarBackplateMaterial
+  );
+  avatarBackplate.position.z = -0.02;
   const avatarMaterial = new THREE.MeshBasicMaterial({
     color: "#ffffff",
     depthWrite: false,
@@ -3491,9 +3968,48 @@ function createEnemyView(
     transparent: true
   });
   const avatarDisc = new THREE.Mesh(avatarGeometry, avatarMaterial);
-  avatarDisc.rotation.x = -Math.PI / 2;
-  avatarDisc.position.y = archetype === "overseer" ? 1.28 : 1.08;
-  avatarDisc.visible = false;
+  const avatarFrameMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#ffffff",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const avatarFrame = new THREE.Mesh(
+    new THREE.RingGeometry(avatarRadius * 1.03, avatarRadius * 1.22, 34),
+    avatarFrameMaterial
+  );
+  avatarFrame.position.z = 0.018;
+  const avatarScanlineMaterial = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#31f5ff",
+    depthWrite: false,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const avatarScanline = new THREE.Mesh(
+    new THREE.PlaneGeometry(avatarRadius * 1.72, 0.055),
+    avatarScanlineMaterial
+  );
+  avatarScanline.position.z = 0.026;
+  avatarRig.add(avatarBackplate, avatarDisc, avatarFrame, avatarScanline);
+
+  for (let index = 0; index < 4; index += 1) {
+    const bracket = new THREE.Mesh(
+      new THREE.BoxGeometry(avatarRadius * 0.38, 0.034, 0.028),
+      avatarFrameMaterial
+    );
+    const angle = (Math.PI / 2) * index + Math.PI / 4;
+    bracket.position.set(
+      Math.cos(angle) * avatarRadius * 0.94,
+      Math.sin(angle) * avatarRadius * 0.94,
+      0.032
+    );
+    bracket.rotation.z = angle;
+    avatarRig.add(bracket);
+  }
   const droneRotors: THREE.Group[] = [];
 
   if (archetype === "charger") {
@@ -3531,6 +4047,34 @@ function createEnemyView(
     );
     spine.position.set(0, 0.64, -0.06);
     root.add(spine);
+
+    const hoverSkirt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.74, 0.9, 0.18, 6),
+      bodyMaterial
+    );
+    hoverSkirt.position.y = 0.16;
+    hoverSkirt.rotation.y = Math.PI / 6;
+    root.add(hoverSkirt);
+
+    const leftSkid = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.18, 1.56),
+      accentMaterial
+    );
+    leftSkid.position.set(-0.78, 0.22, -0.02);
+    leftSkid.rotation.z = -0.08;
+    root.add(leftSkid);
+
+    const rightSkid = leftSkid.clone();
+    rightSkid.position.x = 0.78;
+    rightSkid.rotation.z = 0.08;
+    root.add(rightSkid);
+
+    const cockpitShelf = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 0.1, 0.26),
+      accentMaterial
+    );
+    cockpitShelf.position.set(0, 0.82, -0.24);
+    root.add(cockpitShelf);
   } else if (archetype === "sentry") {
     const core = new THREE.Mesh(
       new THREE.CylinderGeometry(0.46, 0.52, 0.44, 6),
@@ -3570,6 +4114,34 @@ function createEnemyView(
     );
     stabilizer.position.set(0, 0.42, -0.12);
     root.add(stabilizer);
+
+    const shield = new THREE.Mesh(
+      new THREE.BoxGeometry(0.92, 0.56, 0.12),
+      bodyMaterial
+    );
+    shield.position.set(0, 0.48, 0.26);
+    shield.rotation.x = -0.18;
+    root.add(shield);
+
+    for (let index = 0; index < 3; index += 1) {
+      const leg = new THREE.Mesh(
+        new THREE.BoxGeometry(0.11, 0.58, 0.12),
+        accentMaterial
+      );
+      const angle = (Math.PI * 2 * index) / 3 + Math.PI / 6;
+      leg.position.set(Math.cos(angle) * 0.42, 0.04, Math.sin(angle) * 0.42);
+      leg.rotation.z = Math.cos(angle) * 0.34;
+      leg.rotation.x = Math.sin(angle) * 0.28;
+      root.add(leg);
+    }
+
+    const cockpitYoke = new THREE.Mesh(
+      new THREE.TorusGeometry(0.42, 0.035, 8, 18),
+      accentMaterial
+    );
+    cockpitYoke.position.y = 0.86;
+    cockpitYoke.rotation.x = Math.PI / 2;
+    root.add(cockpitYoke);
   } else if (archetype === "artillery") {
     const core = new THREE.Mesh(
       new THREE.CylinderGeometry(0.42, 0.54, 0.46, 6),
@@ -3612,6 +4184,42 @@ function createEnemyView(
     );
     rearBrace.position.set(0, 0.22, -0.42);
     root.add(rearBrace);
+
+    const platform = new THREE.Mesh(
+      new THREE.BoxGeometry(1.24, 0.16, 1.02),
+      bodyMaterial
+    );
+    platform.position.y = 0.12;
+    root.add(platform);
+
+    const targetingDish = new THREE.Mesh(
+      new THREE.ConeGeometry(0.28, 0.22, 18, 1, true),
+      accentMaterial
+    );
+    targetingDish.position.set(-0.42, 0.64, -0.18);
+    targetingDish.rotation.x = -0.42;
+    targetingDish.rotation.z = 0.2;
+    root.add(targetingDish);
+
+    const leftFoot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.46, 0.08, 0.22),
+      accentMaterial
+    );
+    leftFoot.position.set(-0.58, 0.08, 0.34);
+    leftFoot.rotation.y = 0.18;
+    root.add(leftFoot);
+
+    const rightFoot = leftFoot.clone();
+    rightFoot.position.x = 0.58;
+    rightFoot.rotation.y = -0.18;
+    root.add(rightFoot);
+
+    const avatarCradle = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.1, 0.18),
+      accentMaterial
+    );
+    avatarCradle.position.set(0, 0.9, -0.2);
+    root.add(avatarCradle);
   } else if (archetype === "relay") {
     const core = new THREE.Mesh(
       new THREE.CylinderGeometry(0.38, 0.5, 0.56, 6),
@@ -3652,68 +4260,138 @@ function createEnemyView(
     );
     spine.position.set(0, 0.52, -0.06);
     root.add(spine);
+
+    const mast = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), accentMaterial);
+    mast.position.set(0, 0.86, -0.04);
+    root.add(mast);
+
+    const signalRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.72, 0.035, 8, 32),
+      accentMaterial
+    );
+    signalRing.position.y = 0.9;
+    signalRing.rotation.x = Math.PI / 2;
+    root.add(signalRing);
+
+    const wideSignalRing = signalRing.clone();
+    wideSignalRing.scale.setScalar(1.34);
+    wideSignalRing.position.y = 1.02;
+    root.add(wideSignalRing);
+
+    const leftPanel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 0.46, 0.72),
+      bodyMaterial
+    );
+    leftPanel.position.set(-0.58, 0.56, 0.04);
+    leftPanel.rotation.z = -0.2;
+    root.add(leftPanel);
+
+    const rightPanel = leftPanel.clone();
+    rightPanel.position.x = 0.58;
+    rightPanel.rotation.z = 0.2;
+    root.add(rightPanel);
   } else if (archetype === "drone") {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.32, 1.02), bodyMaterial);
-    body.position.y = 0.46;
-    body.rotation.y = Math.PI / 4;
+    const rotorDiscMaterial = new THREE.MeshBasicMaterial({
+      blending: THREE.AdditiveBlending,
+      color: "#96ff47",
+      depthWrite: false,
+      opacity: 0.18,
+      side: THREE.DoubleSide,
+      transparent: true
+    });
+
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.92, 8), bodyMaterial);
+    body.position.y = 0.62;
+    body.rotation.x = Math.PI / 2;
+    body.scale.set(0.88, 1, 1.18);
     root.add(body);
 
     const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 10), bodyMaterial);
-    canopy.position.set(0, 0.62, 0.06);
-    canopy.scale.set(1.12, 0.52, 0.86);
+    canopy.position.set(0, 0.77, 0.04);
+    canopy.scale.set(1.02, 0.42, 0.74);
     root.add(canopy);
 
     const cameraLens = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), accentMaterial);
-    cameraLens.position.set(0, 0.54, 0.62);
-    cameraLens.scale.set(1.18, 0.86, 0.56);
+    cameraLens.position.set(0, 0.62, 0.64);
+    cameraLens.scale.set(1.26, 0.82, 0.5);
     root.add(cameraLens);
 
-    const crossArm = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.1, 0.12), accentMaterial);
-    crossArm.position.y = 0.48;
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.34, 8), accentMaterial);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.set(0, 0.62, 0.72);
+    root.add(nose);
+
+    const crossArm = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.09, 0.12), accentMaterial);
+    crossArm.position.y = 0.62;
+    crossArm.rotation.y = Math.PI / 4;
     root.add(crossArm);
 
-    const foreArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 1.72), accentMaterial);
-    foreArm.position.y = 0.48;
+    const foreArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 2.2), accentMaterial);
+    foreArm.position.y = 0.62;
+    foreArm.rotation.y = Math.PI / 4;
     root.add(foreArm);
 
     const rotorOffsets = [
-      { x: -0.9, z: -0.72 },
-      { x: 0.9, z: -0.72 },
-      { x: -0.9, z: 0.72 },
-      { x: 0.9, z: 0.72 }
+      { x: -1.05, z: -0.84 },
+      { x: 1.05, z: -0.84 },
+      { x: -1.05, z: 0.84 },
+      { x: 1.05, z: 0.84 }
     ];
 
     for (const offset of rotorOffsets) {
       const rotorGroup = new THREE.Group();
-      rotorGroup.position.set(offset.x, 0.5, offset.z);
+      rotorGroup.position.set(offset.x, 0.68, offset.z);
 
-      const guard = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.035, 8, 22), accentMaterial);
+      const guard = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.04, 8, 26), accentMaterial);
       guard.rotation.x = Math.PI / 2;
       rotorGroup.add(guard);
 
-      const blades = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.028, 0.075), accentMaterial);
-      blades.position.y = 0.025;
+      const rotorDisc = new THREE.Mesh(new THREE.CircleGeometry(0.34, 28), rotorDiscMaterial);
+      rotorDisc.rotation.x = -Math.PI / 2;
+      rotorDisc.position.y = 0.02;
+      rotorGroup.add(rotorDisc);
+
+      const blades = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.03, 0.08), accentMaterial);
+      blades.position.y = 0.045;
       rotorGroup.add(blades);
 
       const crossBlades = blades.clone();
       crossBlades.rotation.y = Math.PI / 2;
       rotorGroup.add(crossBlades);
 
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.06, 10), bodyMaterial);
-      hub.position.y = 0.035;
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.08, 10), bodyMaterial);
+      hub.position.y = 0.06;
       rotorGroup.add(hub);
 
       root.add(rotorGroup);
       droneRotors.push(rotorGroup);
     }
 
+    const leftSkid = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 1.18), accentMaterial);
+    leftSkid.position.set(-0.38, 0.28, -0.02);
+    root.add(leftSkid);
+
+    const rightSkid = leftSkid.clone();
+    rightSkid.position.x = 0.38;
+    root.add(rightSkid);
+
+    const leftFin = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.36, 0.3), accentMaterial);
+    leftFin.position.set(-0.18, 0.78, -0.58);
+    leftFin.rotation.z = -0.22;
+    root.add(leftFin);
+
+    const rightFin = leftFin.clone();
+    rightFin.position.x = 0.18;
+    rightFin.rotation.z = 0.22;
+    root.add(rightFin);
+
     const antenna = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.48, 0.055), accentMaterial);
-    antenna.position.set(0.24, 0.94, -0.16);
+    antenna.position.set(0.24, 1.02, -0.16);
     antenna.rotation.z = -0.22;
     root.add(antenna);
 
     const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), accentMaterial);
-    antennaTip.position.set(0.3, 1.18, -0.16);
+    antennaTip.position.set(0.3, 1.26, -0.16);
     root.add(antennaTip);
   } else {
     const body = new THREE.Mesh(
@@ -3768,9 +4446,32 @@ function createEnemyView(
       pylon.position.set(Math.cos(angle) * 0.72, 0.78, Math.sin(angle) * 0.72);
       root.add(pylon);
     }
+
+    const serverSlab = new THREE.Mesh(
+      new THREE.BoxGeometry(1.18, 0.22, 0.38),
+      bodyMaterial
+    );
+    serverSlab.position.set(0, 0.18, -0.34);
+    serverSlab.rotation.y = Math.PI / 4;
+    root.add(serverSlab);
+
+    const tribunalRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.04, 0.045, 8, 42),
+      accentMaterial
+    );
+    tribunalRing.position.y = 0.22;
+    tribunalRing.rotation.x = Math.PI / 2;
+    root.add(tribunalRing);
+
+    const upperLens = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.24, 0),
+      accentMaterial
+    );
+    upperLens.position.y = 1.34;
+    root.add(upperLens);
   }
 
-  root.add(avatarDisc);
+  root.add(avatarRig);
 
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(
@@ -3867,8 +4568,13 @@ function createEnemyView(
     attackBeacon,
     attackBeaconMaterial,
     archetype,
+    avatarBackplateMaterial,
     avatarDisc,
+    avatarFrameMaterial,
     avatarMaterial,
+    avatarRig,
+    avatarScanline,
+    avatarScanlineMaterial,
     bodyMaterial,
     droneRotors,
     eliteHalo,
@@ -3977,7 +4683,7 @@ function drawChannelObituaryLabel(
     43
   );
   labelContext.font = '900 31px "Bahnschrift", "Segoe UI", Arial, sans-serif';
-  labelContext.fillText("INAUTHENTIC CONTENT", labelCanvas.width / 2, 86);
+  labelContext.fillText("DEMONETIZATION COMPLETE", labelCanvas.width / 2, 86);
   obituary.labelTexture.needsUpdate = true;
 }
 
@@ -4010,49 +4716,6 @@ function applyChannelAvatar(
     material.needsUpdate = true;
   }
   updateChannelAvatarGeometryUv(mesh.geometry, getChannelAvatarCellIndex(avatarIndex));
-}
-
-function updateEnemyAvatarDisc(
-  view: EnemyView,
-  enemy: EnemyLike,
-  mode: EnemyAvatarMode,
-  camera: THREE.PerspectiveCamera,
-  sceneTime: number
-): void {
-  if (mode === "floor") {
-    view.avatarDisc.position.y = Math.max(0.045 - view.root.position.y, 0.025);
-    view.avatarDisc.rotation.x = -Math.PI / 2;
-    view.avatarDisc.rotation.y = 0;
-    view.avatarDisc.rotation.z =
-      Math.sin(sceneTime + enemy.id * 0.33) * 0.06;
-    view.avatarDisc.scale.setScalar(
-      (enemy.archetype === "charger" ? 1.22 : 1.36) *
-        (enemy.isElite ? 1.08 : 1)
-    );
-    return;
-  }
-
-  view.avatarDisc.position.y =
-    enemy.archetype === "charger"
-      ? 1.12
-      : enemy.archetype === "artillery"
-        ? 1.24
-        : enemy.archetype === "relay"
-          ? 1.24
-          : 1.18;
-  view.avatarDisc.rotation.x = 0;
-  view.avatarDisc.rotation.y =
-    Math.atan2(
-      camera.position.x - view.root.position.x,
-      camera.position.z - view.root.position.z
-    ) - view.root.rotation.y;
-  view.avatarDisc.rotation.z =
-    Math.sin(sceneTime + enemy.id * 0.33) * 0.06;
-  view.avatarDisc.scale.setScalar(
-    (enemy.archetype === "charger" ? 0.92 : 1) *
-      (enemy.isElite ? 1.08 : 1) *
-      (enemy.damageFlash > 0.08 ? 1.08 : 1)
-  );
 }
 
 function updateChannelAvatarGeometryUv(
@@ -4204,6 +4867,66 @@ function createEffectParticle(parent: THREE.Group): EffectParticle {
     mesh,
     velocity: new THREE.Vector3()
   };
+}
+
+function createFloatingMoneyValue(parent: THREE.Group): FloatingMoneyValue {
+  const canvas = document.createElement("canvas");
+  canvas.width = 320;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not create floating money label canvas.");
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshBasicMaterial({
+    blending: THREE.AdditiveBlending,
+    color: "#ffffff",
+    depthWrite: false,
+    map: texture,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 0.62), material);
+  const root = new THREE.Group();
+  root.visible = false;
+  root.add(mesh);
+  parent.add(root);
+
+  return {
+    active: false,
+    baseY: 0,
+    canvas,
+    context,
+    life: 0,
+    material,
+    maxLife: 0,
+    root,
+    texture
+  };
+}
+
+function drawFloatingMoneyValue(view: FloatingMoneyValue, amount: number): void {
+  const { canvas, context } = view;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.font = '900 54px "Bahnschrift", "Segoe UI", Arial, sans-serif';
+  context.lineJoin = "round";
+  context.shadowColor = "rgba(150, 255, 71, 0.85)";
+  context.shadowBlur = 18;
+  context.strokeStyle = "rgba(5, 10, 14, 0.95)";
+  context.lineWidth = 12;
+  context.strokeText(`+$${amount}`, canvas.width / 2, canvas.height / 2);
+  context.fillStyle = "#ecfff2";
+  context.fillText(`+$${amount}`, canvas.width / 2, canvas.height / 2);
+  context.shadowBlur = 0;
+  context.strokeStyle = "rgba(150, 255, 71, 0.72)";
+  context.lineWidth = 3;
+  context.strokeText(`+$${amount}`, canvas.width / 2, canvas.height / 2);
+  view.texture.needsUpdate = true;
 }
 
 function createEnemyDeathShardPool(parent: THREE.Group): EnemyDeathShard[] {

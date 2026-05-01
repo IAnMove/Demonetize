@@ -23,12 +23,15 @@ type AudioCue =
   | "boss-phase-pulse-start"
   | "boss-phase-shift"
   | "boss-defeated"
+  | "money-collected"
   | "orb-collected"
   | "player-hit"
   | "player-died"
   | "record-best"
   | "upgrade-ready"
   | "victory";
+
+type MusicMode = "menu" | "battle";
 
 interface CueSample {
   gain: number;
@@ -45,21 +48,21 @@ interface LoopSample {
 
 const CUE_SAMPLES: Record<AudioCue, CueSample> = {
   "ui-accept": {
-    gain: 0.42,
-    minIntervalMs: 70,
-    path: "/assets/audio/sfx/ui-accept.wav"
+    gain: 0.32,
+    minIntervalMs: 90,
+    path: "/assets/audio/sfx/ui-accept-rescopic-select.wav"
   },
   "shot-fired": {
-    gain: 0.24,
-    minIntervalMs: 42,
-    path: "/assets/audio/sfx/shot-fired.ogg",
+    gain: 0.16,
+    minIntervalMs: 90,
+    path: "/assets/audio/sfx/shot-fired-rescopic-pulse.wav",
     rateVariance: 0.05
   },
   dash: {
-    gain: 0.28,
-    minIntervalMs: 120,
-    path: "/assets/audio/sfx/dash.wav",
-    playbackRate: 1.12,
+    gain: 0.2,
+    minIntervalMs: 170,
+    path: "/assets/audio/sfx/dash-rescopic-scifi-whoosh.wav",
+    playbackRate: 1.08,
     rateVariance: 0.04
   },
   "combo-surge": {
@@ -136,16 +139,16 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
     rateVariance: 0.1
   },
   "enemy-killed": {
-    gain: 0.28,
-    minIntervalMs: 75,
-    path: "/assets/audio/sfx/enemy-killed.ogg",
+    gain: 0.24,
+    minIntervalMs: 95,
+    path: "/assets/audio/sfx/enemy-killed-qantum-impact.wav",
     rateVariance: 0.08
   },
   "boss-spawned": {
-    gain: 0.3,
+    gain: 0.24,
     minIntervalMs: 600,
-    path: "/assets/audio/sfx/boss-spawned.wav",
-    playbackRate: 0.78
+    path: "/assets/audio/sfx/boss-spawned-cinematic-boom.wav",
+    playbackRate: 0.86
   },
   "boss-collapse-start": {
     gain: 0.26,
@@ -154,10 +157,10 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
     playbackRate: 0.82
   },
   "boss-core-exposed": {
-    gain: 0.24,
+    gain: 0.2,
     minIntervalMs: 500,
-    path: "/assets/audio/sfx/boss-core-exposed.wav",
-    playbackRate: 1.08
+    path: "/assets/audio/sfx/boss-core-exposed-electric-arc.wav",
+    playbackRate: 1
   },
   "boss-phase-pulse-start": {
     gain: 0.26,
@@ -166,10 +169,10 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
     playbackRate: 0.9
   },
   "boss-phase-shift": {
-    gain: 0.4,
+    gain: 0.28,
     minIntervalMs: 500,
-    path: "/assets/audio/sfx/boss-phase-shift.ogg",
-    playbackRate: 0.76
+    path: "/assets/audio/sfx/boss-phase-shift-vortex-in.wav",
+    playbackRate: 0.92
   },
   "boss-defeated": {
     gain: 0.2,
@@ -182,6 +185,13 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
     path: "/assets/audio/sfx/orb-collected.ogg",
     playbackRate: 1.22,
     rateVariance: 0.12
+  },
+  "money-collected": {
+    gain: 0.24,
+    minIntervalMs: 38,
+    path: "/assets/audio/sfx/money-collected.ogg",
+    playbackRate: 1.18,
+    rateVariance: 0.1
   },
   "player-hit": {
     gain: 0.34,
@@ -213,14 +223,19 @@ const CUE_SAMPLES: Record<AudioCue, CueSample> = {
   }
 };
 
-const LOOP_SAMPLES: LoopSample[] = [
+const MENU_LOOP_SAMPLE: LoopSample = {
+  gain: 0.18,
+  path: "/assets/audio/music/darkcity.mp3"
+};
+
+const BATTLE_LOOP_SAMPLES: LoopSample[] = [
   {
-    gain: 0.12,
-    path: "/assets/audio/music/battle-theme.mp3"
+    gain: 0.16,
+    path: "/assets/audio/music/cyberpunk.mp3"
   },
   {
-    gain: 0.04,
-    path: "/assets/audio/music/neon-ambience.ogg"
+    gain: 0.14,
+    path: "/assets/audio/music/jumpingcyborgmix2.ogg"
   }
 ];
 
@@ -228,6 +243,7 @@ export interface AudioBus {
   dispatch: (events: FrameEvent[]) => void;
   playCue: (cue: AudioCue) => void;
   prime: () => void;
+  setMusicMode: (mode: MusicMode) => void;
 }
 
 export function createAudioBus(): AudioBus {
@@ -240,7 +256,8 @@ export function createAudioBus(): AudioBus {
     return {
       dispatch: () => {},
       playCue: () => {},
-      prime: () => {}
+      prime: () => {},
+      setMusicMode: () => {}
     };
   }
 
@@ -265,7 +282,15 @@ export function createAudioBus(): AudioBus {
   const pendingBufferLoads = new Map<string, Promise<AudioBuffer | null>>();
   const failedBufferPaths = new Set<string>();
   const lastCueTimes = new Map<AudioCue, number>();
-  const activeLoopPaths = new Set<string>();
+  let currentMusic:
+    | {
+        gain: GainNode;
+        path: string;
+        source: AudioBufferSourceNode;
+      }
+    | null = null;
+  let desiredMusicMode: MusicMode = "menu";
+  let selectedBattleLoop: LoopSample | null = null;
   let enabled = false;
   let lastVerdictAt = -1000;
 
@@ -405,6 +430,12 @@ export function createAudioBus(): AudioBus {
       case "orb-collected":
         playTone("sine", 640, 880, 0.09, 0.14);
         break;
+      case "money-collected":
+        playTone("triangle", 720, 1160, 0.08, 0.12);
+        window.setTimeout(() => {
+          playTone("sine", 980, 1480, 0.07, 0.08);
+        }, 35);
+        break;
       case "player-hit":
         playTone("sawtooth", 150, 80, 0.12, 0.18);
         break;
@@ -501,10 +532,6 @@ export function createAudioBus(): AudioBus {
     for (const sample of Object.values(CUE_SAMPLES)) {
       void loadAudioBuffer(sample.path);
     }
-
-    for (const sample of LOOP_SAMPLES) {
-      void loadAudioBuffer(sample.path);
-    }
   };
 
   const playSample = (cue: AudioCue): boolean => {
@@ -541,16 +568,58 @@ export function createAudioBus(): AudioBus {
     return true;
   };
 
-  const startLoop = (sample: LoopSample): void => {
-    if (activeLoopPaths.has(sample.path)) {
+  const getMusicSample = (mode: MusicMode): LoopSample => {
+    if (mode === "menu") {
+      return MENU_LOOP_SAMPLE;
+    }
+
+    if (!selectedBattleLoop) {
+      selectedBattleLoop =
+        BATTLE_LOOP_SAMPLES[Math.floor(Math.random() * BATTLE_LOOP_SAMPLES.length)] ??
+        BATTLE_LOOP_SAMPLES[0];
+    }
+
+    return selectedBattleLoop;
+  };
+
+  const stopCurrentMusic = (): void => {
+    const loop = currentMusic;
+    if (!loop) {
       return;
     }
+
+    currentMusic = null;
+
+    const now = context.currentTime;
+    loop.gain.gain.cancelScheduledValues(now);
+    loop.gain.gain.setValueAtTime(loop.gain.gain.value, now);
+    loop.gain.gain.linearRampToValueAtTime(0.0001, now + 0.22);
+    window.setTimeout(() => {
+      try {
+        loop.source.stop();
+      } catch {
+        // The loop may already be stopped by the browser.
+      }
+    }, 240);
+  };
+
+  const updateMusicPlayback = (): void => {
+    if (!enabled) {
+      return;
+    }
+
+    const sample = getMusicSample(desiredMusicMode);
+    if (currentMusic?.path === sample.path) {
+      return;
+    }
+
+    stopCurrentMusic();
 
     const buffer = decodedBuffers.get(sample.path);
     if (!buffer) {
       void loadAudioBuffer(sample.path).then(() => {
-        if (enabled) {
-          startLoop(sample);
+        if (enabled && getMusicSample(desiredMusicMode).path === sample.path) {
+          updateMusicPlayback();
         }
       });
       return;
@@ -566,16 +635,16 @@ export function createAudioBus(): AudioBus {
     source.connect(gain);
     gain.connect(musicMaster);
     source.start();
-    activeLoopPaths.add(sample.path);
-    source.onended = () => {
-      activeLoopPaths.delete(sample.path);
+    currentMusic = {
+      gain,
+      path: sample.path,
+      source
     };
-  };
-
-  const startMusicLoops = (): void => {
-    for (const sample of LOOP_SAMPLES) {
-      startLoop(sample);
-    }
+    source.onended = () => {
+      if (currentMusic?.source === source) {
+        currentMusic = null;
+      }
+    };
   };
 
   const playRoboticVerdict = (): void => {
@@ -598,7 +667,7 @@ export function createAudioBus(): AudioBus {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance("inauthentic content");
+    const utterance = new SpeechSynthesisUtterance("demonetization complete");
     utterance.lang = "en-US";
     utterance.pitch = 0.25;
     utterance.rate = 0.78;
@@ -646,11 +715,23 @@ export function createAudioBus(): AudioBus {
     prime: () => {
       enabled = true;
       if (context.state === "suspended") {
-        void context.resume().then(startMusicLoops);
+        void context.resume().then(updateMusicPlayback);
         return;
       }
 
-      startMusicLoops();
+      updateMusicPlayback();
+    },
+    setMusicMode: (mode) => {
+      if (desiredMusicMode === mode) {
+        return;
+      }
+
+      if (desiredMusicMode === "battle" && mode !== "battle") {
+        selectedBattleLoop = null;
+      }
+
+      desiredMusicMode = mode;
+      updateMusicPlayback();
     }
   };
 }
@@ -701,6 +782,7 @@ function collapseEventCues(events: FrameEvent[]): AudioCue[] {
     "rescue-spawned",
     "rescue-streak",
     "rescue-saved",
+    "money-collected",
     "orb-collected",
     "rescue-lost",
     "enemy-killed",
@@ -785,6 +867,8 @@ function mapEventToCue(eventType: FrameEventType): AudioCue {
       return "upgrade-ready";
     case "card-repair-cast":
       return "orb-collected";
+    case "money-collected":
+      return "money-collected";
     case "orb-collected":
       return "orb-collected";
     case "rescue-saved":

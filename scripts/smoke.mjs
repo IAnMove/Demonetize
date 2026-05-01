@@ -52,7 +52,7 @@ assert(
   "index.html must expose the #app mount point."
 );
 assert(
-  indexHtml.includes("<title>T.O.P.E.: Corporate Purge AI</title>") &&
+  indexHtml.includes("<title>DEMONETIZED: The Authenticity Purge</title>") &&
     indexHtml.includes("boot-intro") &&
     indexHtml.includes("Loading purge contract") &&
     indexHtml.includes("Contract locked") &&
@@ -129,32 +129,29 @@ assert(
     sceneSource.includes("/avatars/channel-avatars.jpg") &&
     sceneSource.includes("/avatars/channel-avatars-2.jpg") &&
     sceneSource.includes("updateChannelAvatarGeometryUv"),
-  "Channel avatar atlas should be optimized and rendered on enemy views."
+  "Channel avatar atlas should be optimized for obituary rendering."
 );
 assert(
   audioSource.includes("SpeechSynthesisUtterance") &&
-    audioSource.includes("inauthentic content") &&
+    audioSource.includes("demonetization complete") &&
     appSource.includes("notify.enemyKilled") &&
-    i18nSource.includes("T.O.P.E.") &&
-    i18nSource.includes("contenido inautentico"),
-  "Corporate AI lore should include channel takedown feedback and robotic verdict copy."
+    i18nSource.includes("TheirTube") &&
+    i18nSource.includes("inautentico"),
+  "TheirTube corporate AI lore should include channel takedown feedback and robotic verdict copy."
 );
 assert(
   appSource.includes("channelAvatarIndex") &&
     sceneSource.includes("createChannelObituaryView") &&
     sceneSource.includes("drawChannelObituaryLabel") &&
-    i18nSource.includes("INAUTHENTIC CONTENT"),
-  "Channel kills should render a red obituary marker with the exact inauthentic-content verdict."
+    sceneSource.includes("DEMONETIZATION COMPLETE"),
+  "Channel kills should render a red obituary marker with the demonetization verdict."
 );
 assert(
-  sceneSource.includes('EnemyAvatarMode = "floor" | "hidden" | "top"') &&
-    sceneSource.includes("setEnemyAvatarMode") &&
-    sceneSource.includes("updateEnemyAvatarDisc") &&
-    appSource.includes("onSetEnemyAvatarMode") &&
-    debugPanelSource.includes("Channel avatars") &&
-    debugPanelSource.includes('"floor"') &&
-    debugPanelSource.includes('"hidden"'),
-  "DEV runtime should expose top/floor/hidden living-channel avatar comparison modes."
+  sceneSource.includes("view.avatarRig.visible = false") &&
+    !sceneSource.includes("getChannelAvatarIndex(enemy.id)") &&
+    !appSource.includes("onSetEnemyAvatarMode") &&
+    !debugPanelSource.includes("Channel avatars"),
+  "Living enemies should hide channel avatars; channel images are reserved for death obituaries."
 );
 assert(
   /\.passive-card-rail\s*\{[^}]*bottom:\s*1rem/s.test(stylesSource) &&

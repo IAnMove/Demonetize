@@ -13,6 +13,8 @@ type HudNoticeTone = "danger" | "pickup" | "system";
 type HudPulse = "damage" | "death" | "pickup" | "upgrade";
 type HudStateTone = "danger" | "neutral" | "system";
 
+const MAX_EVENT_FEED_ITEMS = 10;
+
 interface HudSnapshot {
   actionCards: HeldActionCard[];
   bossLabel?: string;
@@ -24,11 +26,15 @@ interface HudSnapshot {
   dashRatio: number;
   hullLabel: string;
   hullRatio: number;
+  levelLabel: string;
+  levelRatio: number;
+  levelValue: string;
   pbLabel: string;
   pbTone: HudStateTone;
   passiveCards: UpgradeChoice[];
   scoreLabel: string;
   showControls: boolean;
+  showLevelProgress: boolean;
   state: string;
   stateTone: HudStateTone;
   uptime: string;
@@ -91,6 +97,28 @@ export function createHud(
 
   statusCluster.append(statusRail, metaStrip);
 
+  const levelProgress = document.createElement("div");
+  levelProgress.className = "level-progress";
+
+  const levelHead = document.createElement("div");
+  levelHead.className = "level-progress-head";
+
+  const levelLabel = document.createElement("span");
+  levelLabel.className = "level-progress-label";
+
+  const levelValue = document.createElement("span");
+  levelValue.className = "level-progress-value";
+
+  const levelMeter = document.createElement("div");
+  levelMeter.className = "level-progress-meter";
+
+  const levelFill = document.createElement("div");
+  levelFill.className = "level-progress-fill";
+
+  levelHead.append(levelLabel, levelValue);
+  levelMeter.appendChild(levelFill);
+  levelProgress.append(levelHead, levelMeter);
+
   const eventFeed = document.createElement("div");
   eventFeed.className = "event-feed";
   let focusBannerToken = 0;
@@ -139,6 +167,7 @@ export function createHud(
     flash,
     focusBanner,
     statusCluster,
+    levelProgress,
     eventFeed,
     bossStrip,
     controlsStrip,
@@ -257,23 +286,24 @@ export function createHud(
     },
     notify: (message, tone = "system") => {
       const pill = document.createElement("div");
-      pill.className = `event-pill is-${tone}`;
+      pill.className = `event-pill is-${tone} is-new`;
       pill.textContent = message;
       eventFeed.prepend(pill);
+      window.setTimeout(() => {
+        pill.classList.remove("is-new");
+      }, 180);
 
       const trimOverflow = (): void => {
-        while (eventFeed.childElementCount > 3) {
-          eventFeed.lastElementChild?.remove();
+        while (eventFeed.childElementCount > MAX_EVENT_FEED_ITEMS) {
+          const oldest = eventFeed.lastElementChild;
+          if (!oldest) {
+            return;
+          }
+          oldest.remove();
         }
       };
 
       trimOverflow();
-      window.setTimeout(() => {
-        pill.classList.add("is-leaving");
-        window.setTimeout(() => {
-          pill.remove();
-        }, 220);
-      }, 1450);
     },
     pulse: (kind) => {
       const className = `is-${kind}`;
@@ -305,6 +335,15 @@ export function createHud(
         `${Math.round(snapshot.dashRatio * 100)}%`
       );
       dashMetric.value.classList.toggle("is-ready", snapshot.dashRatio >= 0.99);
+
+      setHidden(levelProgress, !snapshot.showLevelProgress);
+      setText(levelLabel, snapshot.levelLabel);
+      setText(levelValue, snapshot.levelValue);
+      setCssVariable(
+        levelFill,
+        "--level-fill",
+        `${Math.round(snapshot.levelRatio * 100)}%`
+      );
 
       setText(waveMeta.value, snapshot.wave);
       setText(waveDetailMeta.value, snapshot.waveDetail);

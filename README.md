@@ -1,6 +1,8 @@
-# The Feed: Authenticity Purge
+# DEMONETIZED: The Authenticity Purge
 
-Creator-purge PvE survival prototype for the browser. The current MVP is a solo-first run inside a parody video platform where authentic creator signals fight an automated deletion purge.
+Neon PvE roguelite prototype for the browser. TheirTube is a satirical video/content-feed platform where creators believe they own their channels, but all value, data, and monetization belong to the platform. T.O.P.E. is TheirTube's premium moderation AI, hired to clean The Feed by marking inconvenient human channels as inauthentic, extracting their remaining value, and erasing them from the system.
+
+Pitch: a neon roguelite where TheirTube's corporate moderation AI purges human channels, extracts their value, and calls it authenticity.
 
 ## Stack
 
@@ -45,10 +47,10 @@ The smoke test checks the app mount point, boot path, and core state transitions
 ## MVP Loop
 
 1. Start the run from the title screen.
-2. Survive escalating deletion sweeps, bot swarms, and strike hunters.
-3. Collect trust fragments to recover signal.
-4. Pick one proof or appeal tool between waves.
-5. Break the Algorithm and restore The Feed.
+2. Survive escalating authenticity sweeps, bot swarms, and strike hunters.
+3. Collect evidence fragments to recover signal.
+4. Pick active and passive compliance tools between waves.
+5. Break TheirTube's Algorithm and complete the demonetization contract.
 
 ## Project Notes
 

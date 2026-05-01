@@ -3,6 +3,15 @@ import { GAME_CONFIG } from "./config";
 import { createInputController } from "./input";
 import { createI18n, type I18nController } from "./i18n";
 import { FixedStepLoop } from "./loop";
+import {
+  applyMetaRunModifiersToPlayer,
+  depositRunMoney,
+  getMetaRunModifiers,
+  loadMetaProgression,
+  purchaseMetaUpgrade,
+  type MetaProgressionState,
+  type MetaRunModifiers
+} from "./metaProgression";
 import { loadRunRecords, recordRunResult } from "./runRecords";
 import { GameStateMachine, type GameState } from "./stateMachine";
 import { getChannelAvatarIndex, getChannelName } from "../gameplay/channelLore";
@@ -25,12 +34,14 @@ import type { ActionCardId, UpgradeId } from "../gameplay/progression/upgrades";
 import {
   ACTION_CARD_IDS,
   getUpgradeChoice,
-  isActionCardId
+  isActionCardId,
+  rollEliteUpgradeChoices,
+  rollUpgradeChoices
 } from "../gameplay/progression/upgrades";
 import { getBuildProfile } from "../gameplay/progression/builds";
-import { getWaveThemeId } from "../gameplay/waves/waveConfig";
+import { getWavePlan, getWaveThemeId } from "../gameplay/waves/waveConfig";
 import type { PlayerDamageSourceKind } from "../gameplay/player/player";
-import { createGameScene, type EnemyAvatarMode } from "../render/scene";
+import { createGameScene } from "../render/scene";
 import { createDebugPanel } from "../ui/debugPanel";
 import { createHud } from "../ui/hud";
 import { createOverlays } from "../ui/overlays";
@@ -40,10 +51,12 @@ type RunLossReason = PlayerDamageSourceKind | "overrun";
 interface RunSummary {
   bestCombo: number;
   bestRescueStreak: number;
+  channelsDestroyed: number;
   chapter: number;
   elapsedSeconds: number;
   lossReason?: RunLossReason;
   lostRescueCount: number;
+  moneyEarned: number;
   rank: "a" | "b" | "c" | "d" | "s";
   rescuedCount: number;
   score: number;
@@ -83,10 +96,15 @@ export function createApp(rootElement: HTMLDivElement): void {
   const input = createInputController(sceneLayer);
   let hud: ReturnType<typeof createHud>;
   const session = createGameSession();
+  let metaProgression: MetaProgressionState = loadMetaProgression();
+  let activeRunModifiers: MetaRunModifiers = getMetaRunModifiers(metaProgression);
   let runRecords = loadRunRecords();
   let announcedWave = 0;
   let actionCardFreezeRemaining = 0;
+  let activeDraftMode: "chapter-transition" | "opening-action" | "upgrade" | null = null;
+  let draftRerollsRemaining = 0;
   let debugRandomRestore: (() => void) | null = null;
+  let openingActionPicksRemaining = 1;
   let pbAnnouncedThisRun = false;
   let usedActionCards: ActionCardId[] = [];
   let pendingGameOver:
@@ -102,7 +120,12 @@ export function createApp(rootElement: HTMLDivElement): void {
       }
     | null = null;
 
-  const openActionCardDraft = (): void => {
+  const openActionCardDraft = (resetPickCount = true): void => {
+    activeDraftMode = "opening-action";
+    draftRerollsRemaining = 0;
+    if (resetPickCount) {
+      openingActionPicksRemaining = activeRunModifiers.openingActionPicks;
+    }
     const openingView = getSessionSnapshot(session);
     overlays.setProgression(
       ACTION_CARD_IDS.map((cardId) => getUpgradeChoice(cardId)),
@@ -110,9 +133,28 @@ export function createApp(rootElement: HTMLDivElement): void {
       0,
       createRunSummary(openingView, [], usedActionCards),
       false,
-      "opening-action"
+      "opening-action",
+      0,
+      openingActionPicksRemaining
     );
     stateMachine.transition("between-waves");
+  };
+
+  const resetRunForNewContract = (): void => {
+    hud.clearTransientState();
+    input.clearTransientState();
+    pendingGameOver = null;
+    pendingVictory = null;
+    announcedWave = 0;
+    pbAnnouncedThisRun = false;
+    actionCardFreezeRemaining = 0;
+    activeDraftMode = null;
+    draftRerollsRemaining = 0;
+    usedActionCards = [];
+    resetGameSession(session);
+    activeRunModifiers = getMetaRunModifiers(metaProgression);
+    applyMetaRunModifiersToPlayer(session.player, activeRunModifiers);
+    openingActionPicksRemaining = activeRunModifiers.openingActionPicks;
   };
 
   hud = createHud(overlayLayer, i18n, {
@@ -156,32 +198,18 @@ export function createApp(rootElement: HTMLDivElement): void {
   });
 
   const startRun = (): void => {
+    audio.setMusicMode("battle");
     audio.prime();
     audio.playCue("ui-accept");
-    hud.clearTransientState();
-    input.clearTransientState();
-    pendingGameOver = null;
-    pendingVictory = null;
-    announcedWave = 0;
-    pbAnnouncedThisRun = false;
-    actionCardFreezeRemaining = 0;
-    usedActionCards = [];
-    resetGameSession(session);
+    resetRunForNewContract();
     openActionCardDraft();
   };
 
   const restartRun = (): void => {
+    audio.setMusicMode("battle");
     audio.prime();
     audio.playCue("ui-accept");
-    hud.clearTransientState();
-    input.clearTransientState();
-    pendingGameOver = null;
-    pendingVictory = null;
-    announcedWave = 0;
-    pbAnnouncedThisRun = false;
-    actionCardFreezeRemaining = 0;
-    usedActionCards = [];
-    resetGameSession(session);
+    resetRunForNewContract();
     openActionCardDraft();
   };
 
@@ -190,6 +218,7 @@ export function createApp(rootElement: HTMLDivElement): void {
       return;
     }
 
+    audio.setMusicMode("menu");
     audio.prime();
     audio.playCue("ui-accept");
     hud.clearTransientState();
@@ -197,32 +226,144 @@ export function createApp(rootElement: HTMLDivElement): void {
     stateMachine.transition("title");
   };
 
+  const returnToTitle = (): void => {
+    audio.setMusicMode("menu");
+    audio.prime();
+    audio.playCue("ui-accept");
+    hud.clearTransientState();
+    input.clearTransientState();
+    pendingGameOver = null;
+    pendingVictory = null;
+    activeDraftMode = null;
+    draftRerollsRemaining = 0;
+    stateMachine.transition("title");
+  };
+
+  const buyMetaUpgrade = (
+    upgradeId: Parameters<typeof purchaseMetaUpgrade>[1]
+  ): void => {
+    const result = purchaseMetaUpgrade(metaProgression, upgradeId);
+    if (!result.purchased) {
+      return;
+    }
+
+    metaProgression = result.state;
+    activeRunModifiers = getMetaRunModifiers(metaProgression);
+    overlays.setMetaProgression(metaProgression);
+    audio.playCue("ui-accept");
+  };
+
+  const rerollDraft = (): void => {
+    if (
+      draftRerollsRemaining <= 0 ||
+      (activeDraftMode !== "upgrade" && activeDraftMode !== "chapter-transition")
+    ) {
+      return;
+    }
+
+    const view = getSessionSnapshot(session);
+    const selectedChoices = view.progression.selectedChoices;
+    const choiceCount = Math.max(2, view.progression.availableChoices.length);
+    draftRerollsRemaining -= 1;
+
+    if (activeDraftMode === "chapter-transition") {
+      const rescueCacheActive =
+        view.rescuedCount >= GAME_CONFIG.chapterRescueBonusThreshold;
+      session.pendingUpgradeChoices = rollEliteUpgradeChoices(
+        selectedChoices,
+        choiceCount,
+        rescueCacheActive ? ["signal-choir"] : []
+      );
+      overlays.setChapterTransition(
+        view.wave.chapter,
+        session.pendingUpgradeChoices,
+        selectedChoices,
+        rescueCacheActive,
+        draftRerollsRemaining
+      );
+    } else {
+      const rescueBonusUnlocked = choiceCount > 3;
+      session.pendingUpgradeChoices = rollUpgradeChoices(
+        selectedChoices,
+        choiceCount
+      );
+      overlays.setProgression(
+        session.pendingUpgradeChoices,
+        selectedChoices,
+        view.wave.currentWave,
+        createRunSummary(view, [], usedActionCards),
+        rescueBonusUnlocked,
+        "upgrade",
+        draftRerollsRemaining
+      );
+    }
+
+    audio.playCue("ui-accept");
+  };
+
   const overlays = createOverlays(
     overlayLayer,
     {
+      onPurchaseMetaUpgrade: buyMetaUpgrade,
+      onReturnToTitle: returnToTitle,
+      onRerollDraft: rerollDraft,
       onSkipIntro: skipIntro,
       onStart: startRun,
       onRestart: restartRun,
       onContinueChapter: () => {
+        audio.setMusicMode("battle");
         audio.prime();
         audio.playCue("ui-accept");
         hud.clearTransientState();
         input.clearTransientState();
         advanceChapterTransition(session);
+        activeDraftMode = null;
+        draftRerollsRemaining = 0;
         stateMachine.transition("playing");
       },
       onSelectUpgrade: (upgradeId) => {
+        audio.setMusicMode("battle");
         audio.prime();
         audio.playCue("ui-accept");
         hud.clearTransientState();
         applyUpgradeSelection(session, upgradeId);
         input.clearTransientState();
+        if (activeDraftMode === "opening-action") {
+          openingActionPicksRemaining = Math.max(
+            0,
+            openingActionPicksRemaining - 1
+          );
+          if (openingActionPicksRemaining > 0) {
+            openActionCardDraft(false);
+            return;
+          }
+        }
+        activeDraftMode = null;
+        draftRerollsRemaining = 0;
         stateMachine.transition("playing");
       }
     },
-    i18n
+    i18n,
+    metaProgression
   );
   overlays.setRecords(runRecords);
+  overlays.setMetaProgression(metaProgression);
+
+  const finalizeRunResult = (summary: RunSummary, didWin: boolean): void => {
+    metaProgression = depositRunMoney(metaProgression, summary.moneyEarned);
+    overlays.setMetaProgression(metaProgression);
+
+    const recordUpdate = recordRunResult(summary, didWin, runRecords);
+    runRecords = recordUpdate.records;
+    overlays.setRecords(runRecords);
+    overlays.setRunSummary(summary, recordUpdate.highlights);
+
+    if (hasRecordHighlight(recordUpdate.highlights)) {
+      audio.playCue("record-best");
+      hud.announce(i18n.t("announce.recordBest"), "system");
+      hud.notify(i18n.t("notify.recordBest"), "system");
+    }
+  };
 
   const enterDebugPlaytest = (message: string): void => {
     hud.clearTransientState();
@@ -303,11 +444,10 @@ export function createApp(rootElement: HTMLDivElement): void {
     enterDebugPlaytest("DEV FORCED RESTORATION");
     const view = getSessionSnapshot(session);
     const summary = createRunSummary(view, [], usedActionCards);
-    const recordUpdate = recordRunResult(summary, true, runRecords);
-    runRecords = recordUpdate.records;
-    overlays.setRecords(runRecords);
-    overlays.setRunSummary(summary, recordUpdate.highlights);
+    finalizeRunResult(summary, true);
     input.clearTransientState();
+    activeDraftMode = null;
+    draftRerollsRemaining = 0;
     stateMachine.transition("victory");
   };
 
@@ -362,11 +502,6 @@ export function createApp(rootElement: HTMLDivElement): void {
     applyFrameFeedback(hud, frameEvents, i18n);
   };
 
-  const setEnemyAvatarMode = (mode: EnemyAvatarMode): void => {
-    scene.setEnemyAvatarMode(mode);
-    hud.notify(`Channel avatars: ${mode}`, "system");
-  };
-
   const debugPanel = import.meta.env.DEV
     ? createDebugPanel(overlayLayer, {
         onApplyPreset: applyDebugPreset,
@@ -375,13 +510,17 @@ export function createApp(rootElement: HTMLDivElement): void {
         onForceVictory: forceDebugVictory,
         onPreviewEnemyDeaths: previewEnemyDeathEffects,
         onGrantUpgrade: grantDebugUpgrade,
-        onSetEnemyAvatarMode: setEnemyAvatarMode,
         onSetSeed: setDebugSeed,
         onUseLiveRandom: useLiveRandom
       })
     : null;
 
   const syncUi = (state: GameState): void => {
+    audio.setMusicMode(
+      state === "playing" || state === "between-waves" || state === "chapter-transition"
+        ? "battle"
+        : "menu"
+    );
     overlays.setState(state);
     hud.setVisible(state === "playing" || state === "between-waves");
 
@@ -404,11 +543,15 @@ export function createApp(rootElement: HTMLDivElement): void {
         dashRatio: 1,
         hullLabel: "100%",
         hullRatio: 1,
+        levelLabel: i18n.t("hud.level"),
+        levelRatio: 0,
+        levelValue: "0%",
         pbLabel: getPersonalBestChaseLabel(0, runRecords.bestScore, i18n),
         pbTone: "neutral",
         passiveCards: [],
         scoreLabel: "0000",
         showControls: true,
+        showLevelProgress: false,
         state: i18n.t("hud.standBy"),
         stateTone: "neutral",
         uptime: "00.0s",
@@ -439,24 +582,11 @@ export function createApp(rootElement: HTMLDivElement): void {
         );
 
         if (pendingGameOver.timeRemaining <= 0) {
-          const recordUpdate = recordRunResult(
-            pendingGameOver.summary,
-            false,
-            runRecords
-          );
-          runRecords = recordUpdate.records;
-          overlays.setRecords(runRecords);
-          overlays.setRunSummary(
-            pendingGameOver.summary,
-            recordUpdate.highlights
-          );
-          if (hasRecordHighlight(recordUpdate.highlights)) {
-            audio.playCue("record-best");
-            hud.announce(i18n.t("announce.recordBest"), "system");
-            hud.notify(i18n.t("notify.recordBest"), "system");
-          }
+          finalizeRunResult(pendingGameOver.summary, false);
           pendingGameOver = null;
           input.clearTransientState();
+          activeDraftMode = null;
+          draftRerollsRemaining = 0;
           stateMachine.transition("game-over");
         }
         return;
@@ -469,24 +599,11 @@ export function createApp(rootElement: HTMLDivElement): void {
         );
 
         if (pendingVictory.timeRemaining <= 0) {
-          const recordUpdate = recordRunResult(
-            pendingVictory.summary,
-            true,
-            runRecords
-          );
-          runRecords = recordUpdate.records;
-          overlays.setRecords(runRecords);
-          overlays.setRunSummary(
-            pendingVictory.summary,
-            recordUpdate.highlights
-          );
-          if (hasRecordHighlight(recordUpdate.highlights)) {
-            audio.playCue("record-best");
-            hud.announce(i18n.t("announce.recordBest"), "system");
-            hud.notify(i18n.t("notify.recordBest"), "system");
-          }
+          finalizeRunResult(pendingVictory.summary, true);
           pendingVictory = null;
           input.clearTransientState();
+          activeDraftMode = null;
+          draftRerollsRemaining = 0;
           stateMachine.transition("victory");
         }
         return;
@@ -533,6 +650,11 @@ export function createApp(rootElement: HTMLDivElement): void {
           : "system";
       const waveThreatLabel = getWaveThreatLabel(view.wave.currentWave, i18n);
       const buildProfile = getBuildProfile(view.progression.selectedChoices);
+      const upgradeProgressRatio = getUpgradeProgressRatio(
+        view.wave.currentWave,
+        view.wave.enemiesRemaining,
+        view.wave.phase
+      );
 
       if (
         !pbAnnouncedThisRun &&
@@ -575,6 +697,11 @@ export function createApp(rootElement: HTMLDivElement): void {
       scene.emitEffects(result.frameEvents);
       scene.setPickups([
         ...view.orbs.map((position) => ({ kind: "orb" as const, position })),
+        ...view.moneyPickups.map((pickup) => ({
+          amount: pickup.amount,
+          kind: "money" as const,
+          position: pickup.position
+        })),
         ...view.rescues.map((rescue) => ({
           boosted: buildProfile.signature === "signal-choir",
           kind: "rescue" as const,
@@ -628,6 +755,9 @@ export function createApp(rootElement: HTMLDivElement): void {
           ),
         hullLabel: `${Math.ceil(view.player.health)}%`,
         hullRatio: view.player.health / view.player.maxHealth,
+        levelLabel: i18n.t("hud.level"),
+        levelRatio: upgradeProgressRatio,
+        levelValue: `${Math.round(upgradeProgressRatio * 100)}%`,
         pbLabel: getPersonalBestChaseLabel(view.score, runRecords.bestScore, i18n),
         pbTone:
           runRecords.bestScore > 0 && view.score > runRecords.bestScore
@@ -641,6 +771,8 @@ export function createApp(rootElement: HTMLDivElement): void {
           view.elapsedSeconds < 18 ||
           view.wave.currentWave === 1 ||
           view.wave.phase === "paused",
+        showLevelProgress:
+          view.wave.currentWave > 0 && view.wave.phase !== "paused",
         state:
           bossCoreExposed
             ? i18n.t("state.exposedCore")
@@ -691,18 +823,25 @@ export function createApp(rootElement: HTMLDivElement): void {
           view.progression.availableChoices,
           view.progression.selectedChoices,
           view.progression.availableChoices.length >
-            2
+            2,
+          activeRunModifiers.draftRerolls
         );
+        activeDraftMode = "chapter-transition";
+        draftRerollsRemaining = activeRunModifiers.draftRerolls;
         input.clearTransientState();
         stateMachine.transition("chapter-transition");
       } else if (result.betweenWavesReady) {
+        activeDraftMode = "upgrade";
+        draftRerollsRemaining = activeRunModifiers.draftRerolls;
         overlays.setProgression(
           view.progression.availableChoices,
           view.progression.selectedChoices,
           view.wave.currentWave,
           createRunSummary(view, [], usedActionCards),
           view.progression.availableChoices.length >
-            3
+            3,
+          "upgrade",
+          draftRerollsRemaining
         );
         input.clearTransientState();
         stateMachine.transition("between-waves");
@@ -783,6 +922,11 @@ export function createApp(rootElement: HTMLDivElement): void {
   scene.setEnemies(titleView.enemies);
   scene.setPickups([
     ...titleView.orbs.map((position) => ({ kind: "orb" as const, position })),
+    ...titleView.moneyPickups.map((pickup) => ({
+      amount: pickup.amount,
+      kind: "money" as const,
+      position: pickup.position
+    })),
     ...titleView.rescues.map((rescue) => ({
       boosted: false,
       kind: "rescue" as const,
@@ -865,10 +1009,12 @@ function createRunSummary(
   return {
     bestCombo: view.bestCombo,
     bestRescueStreak: view.bestRescueStreak,
+    channelsDestroyed: view.channelsDestroyed,
     chapter: view.wave.chapter,
     elapsedSeconds: view.elapsedSeconds,
     lossReason: getRunLossReason(view, frameEvents),
     lostRescueCount: view.lostRescueCount,
+    moneyEarned: view.moneyEarned,
     rank: getRunRank(view),
     rescuedCount: view.rescuedCount,
     score: view.score,
@@ -877,6 +1023,41 @@ function createRunSummary(
     usedActionCards: [...usedActionCards],
     waveNumber: view.wave.currentWave
   };
+}
+
+function getUpgradeProgressRatio(
+  waveNumber: number,
+  enemiesRemaining: number,
+  phase: ReturnType<typeof getSessionSnapshot>["wave"]["phase"]
+): number {
+  if (waveNumber <= 0) {
+    return 0;
+  }
+
+  if (phase === "paused" || phase === "complete") {
+    return 1;
+  }
+
+  const totalEnemies = getWaveEnemyCount(waveNumber);
+  if (totalEnemies <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, 1 - enemiesRemaining / totalEnemies));
+}
+
+function getWaveEnemyCount(waveNumber: number): number {
+  return getWavePlan(Math.max(1, waveNumber)).bursts.reduce(
+    (total, burst) =>
+      total +
+      burst.artilleryCount +
+      burst.bossCount +
+      burst.chargerCount +
+      burst.droneCount +
+      (burst.relayCount ?? 0) +
+      burst.sentryCount,
+    0
+  );
 }
 
 function getRunRank(
@@ -1012,6 +1193,7 @@ function applyFrameFeedback(
   }
 
   let pickupHeal = 0;
+  let moneyCollected = 0;
 
   for (const event of events) {
       switch (event.type) {
@@ -1095,6 +1277,9 @@ function applyFrameFeedback(
       case "orb-collected":
         pickupHeal += event.amount ?? 0;
         break;
+      case "money-collected":
+        moneyCollected += event.amount ?? 0;
+        break;
       case "rescue-saved":
         hud.pulse("pickup");
         hud.notify(
@@ -1142,6 +1327,11 @@ function applyFrameFeedback(
   if (pickupHeal > 0) {
     hud.pulse("pickup");
     hud.notify(i18n.t("notify.pickupHeal", { amount: pickupHeal }), "pickup");
+  }
+
+  if (moneyCollected > 0) {
+    hud.pulse("pickup");
+    hud.notify(i18n.t("notify.moneyCollected", { amount: moneyCollected }), "pickup");
   }
 }
 

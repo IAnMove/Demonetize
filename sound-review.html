@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sound Review</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101116;
+        --panel: #191b23;
+        --panel-2: #222632;
+        --text: #f4f5f7;
+        --muted: #a9afbf;
+        --line: #343948;
+        --accent: #42d6a4;
+        --accent-2: #72a6ff;
+        --danger: #ff6b7c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 44px;
+      }
+
+      header {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        max-width: 860px;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        margin: 20px 0;
+        align-items: center;
+      }
+
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+
+      .search,
+      .select {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--text);
+      }
+
+      .search {
+        width: 100%;
+        padding: 0 14px;
+      }
+
+      .select {
+        padding: 0 12px;
+      }
+
+      .section {
+        margin-top: 22px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 10px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: 0;
+      }
+
+      .count {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .table {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(210px, 1.2fr) minmax(150px, 0.8fr) minmax(230px, 1fr) minmax(170px, 0.7fr) minmax(280px, 1.1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .row:first-child {
+        border-top: 0;
+      }
+
+      .head {
+        background: var(--panel-2);
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .action {
+        display: grid;
+        gap: 4px;
+      }
+
+      .label {
+        font-weight: 700;
+      }
+
+      code,
+      .file,
+      .path {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      code {
+        color: var(--accent-2);
+        font-size: 13px;
+      }
+
+      .file {
+        color: var(--accent);
+        word-break: break-word;
+      }
+
+      .path,
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .params {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--muted);
+        background: #141720;
+        font-size: 12px;
+      }
+
+      .player {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .play {
+        width: 42px;
+        height: 34px;
+        border: 1px solid #35735f;
+        border-radius: 8px;
+        background: #143b31;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .play:hover,
+      .copy:hover {
+        filter: brightness(1.15);
+      }
+
+      .copy {
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #191f2d;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      audio {
+        width: 100%;
+        min-width: 190px;
+        height: 34px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .missing {
+        color: var(--danger);
+      }
+
+      @media (max-width: 980px) {
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .row,
+        .head {
+          grid-template-columns: 1fr;
+        }
+
+        .head {
+          display: none;
+        }
+
+        .row {
+          gap: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Sound Review</h1>
+        <p class="summary">
+          Mapeo actual del juego: accion, cue, archivo cargado y parametros de
+          reproduccion. Si algo no encaja, dime la accion o el archivo que quieres
+          cambiar y el nuevo sonido.
+        </p>
+      </header>
+
+      <div class="toolbar">
+        <input
+          id="search"
+          class="search"
+          type="search"
+          placeholder="Buscar accion, cue o archivo"
+          autocomplete="off"
+        />
+        <select id="category" class="select" aria-label="Categoria">
+          <option value="all">Todas</option>
+        </select>
+      </div>
+
+      <section class="section" aria-labelledby="current-sfx-title">
+        <div class="section-title">
+          <h2 id="current-sfx-title">SFX actuales</h2>
+          <span id="sfx-count" class="count"></span>
+        </div>
+        <div class="table" id="sfx-table"></div>
+      </section>
+
+      <section class="section" aria-labelledby="music-title">
+        <div class="section-title">
+          <h2 id="music-title">Musica actual</h2>
+          <span id="music-count" class="count"></span>
+        </div>
+        <div class="table" id="music-table"></div>
+      </section>
+    </main>
+
+    <script>
+      const cues = {
+        "ui-accept": {
+          gain: 0.32,
+          minIntervalMs: 90,
+          path: "/assets/audio/sfx/ui-accept-rescopic-select.wav"
+        },
+        "shot-fired": {
+          gain: 0.16,
+          minIntervalMs: 90,
+          path: "/assets/audio/sfx/shot-fired-rescopic-pulse.wav",
+          rateVariance: 0.05
+        },
+        dash: {
+          gain: 0.2,
+          minIntervalMs: 170,
+          path: "/assets/audio/sfx/dash-rescopic-scifi-whoosh.wav",
+          playbackRate: 1.08,
+          rateVariance: 0.04
+        },
+        "combo-surge": {
+          gain: 0.2,
+          minIntervalMs: 260,
+          path: "/assets/audio/sfx/combo-surge.wav"
+        },
+        "artillery-lock-start": {
+          gain: 0.34,
+          minIntervalMs: 220,
+          path: "/assets/audio/sfx/artillery-lock-start.wav"
+        },
+        "artillery-impact": {
+          gain: 0.42,
+          minIntervalMs: 80,
+          path: "/assets/audio/sfx/artillery-impact.ogg",
+          playbackRate: 0.92,
+          rateVariance: 0.04
+        },
+        "relay-boost-start": {
+          gain: 0.22,
+          minIntervalMs: 260,
+          path: "/assets/audio/sfx/relay-boost-start.wav"
+        },
+        "elite-spawned": {
+          gain: 0.34,
+          minIntervalMs: 300,
+          path: "/assets/audio/sfx/elite-spawned.ogg",
+          playbackRate: 0.86,
+          rateVariance: 0.03
+        },
+        "elite-killed": {
+          gain: 0.3,
+          minIntervalMs: 160,
+          path: "/assets/audio/sfx/elite-killed.ogg",
+          playbackRate: 0.9,
+          rateVariance: 0.05
+        },
+        "elite-burst": {
+          gain: 0.44,
+          minIntervalMs: 140,
+          path: "/assets/audio/sfx/elite-burst.ogg",
+          playbackRate: 0.86,
+          rateVariance: 0.04
+        },
+        "enemy-fired": {
+          gain: 0.24,
+          minIntervalMs: 90,
+          path: "/assets/audio/sfx/enemy-fired.ogg",
+          playbackRate: 1.05,
+          rateVariance: 0.05
+        },
+        "arena-purge-start": {
+          gain: 0.36,
+          minIntervalMs: 360,
+          path: "/assets/audio/sfx/arena-purge-start.wav"
+        },
+        "legendary-ready": {
+          gain: 0.22,
+          minIntervalMs: 380,
+          path: "/assets/audio/sfx/record-best.wav"
+        },
+        "enemy-spawned": {
+          gain: 0.2,
+          minIntervalMs: 120,
+          path: "/assets/audio/sfx/enemy-spawned.ogg",
+          playbackRate: 1.15,
+          rateVariance: 0.06
+        },
+        "enemy-hit": {
+          gain: 0.22,
+          minIntervalMs: 38,
+          path: "/assets/audio/sfx/enemy-hit.ogg",
+          rateVariance: 0.1
+        },
+        "enemy-killed": {
+          gain: 0.24,
+          minIntervalMs: 95,
+          path: "/assets/audio/sfx/enemy-killed-qantum-impact.wav",
+          rateVariance: 0.08
+        },
+        "boss-spawned": {
+          gain: 0.24,
+          minIntervalMs: 600,
+          path: "/assets/audio/sfx/boss-spawned-cinematic-boom.wav",
+          playbackRate: 0.86
+        },
+        "boss-collapse-start": {
+          gain: 0.26,
+          minIntervalMs: 650,
+          path: "/assets/audio/sfx/boss-collapse-start.wav",
+          playbackRate: 0.82
+        },
+        "boss-core-exposed": {
+          gain: 0.2,
+          minIntervalMs: 500,
+          path: "/assets/audio/sfx/boss-core-exposed-electric-arc.wav",
+          playbackRate: 1
+        },
+        "boss-phase-pulse-start": {
+          gain: 0.26,
+          minIntervalMs: 420,
+          path: "/assets/audio/sfx/boss-phase-pulse-start.wav",
+          playbackRate: 0.9
+        },
+        "boss-phase-shift": {
+          gain: 0.28,
+          minIntervalMs: 500,
+          path: "/assets/audio/sfx/boss-phase-shift-vortex-in.wav",
+          playbackRate: 0.92
+        },
+        "boss-defeated": {
+          gain: 0.2,
+          minIntervalMs: 900,
+          path: "/assets/audio/sfx/boss-defeated.wav"
+        },
+        "orb-collected": {
+          gain: 0.18,
+          minIntervalMs: 35,
+          path: "/assets/audio/sfx/orb-collected.ogg",
+          playbackRate: 1.22,
+          rateVariance: 0.12
+        },
+        "money-collected": {
+          gain: 0.24,
+          minIntervalMs: 38,
+          path: "/assets/audio/sfx/money-collected.ogg",
+          playbackRate: 1.18,
+          rateVariance: 0.1
+        },
+        "player-hit": {
+          gain: 0.34,
+          minIntervalMs: 180,
+          path: "/assets/audio/sfx/player-hit.ogg",
+          playbackRate: 0.82,
+          rateVariance: 0.04
+        },
+        "player-died": {
+          gain: 0.28,
+          minIntervalMs: 1200,
+          path: "/assets/audio/sfx/player-died.wav"
+        },
+        "record-best": {
+          gain: 0.22,
+          minIntervalMs: 500,
+          path: "/assets/audio/sfx/record-best.wav"
+        },
+        "upgrade-ready": {
+          gain: 0.32,
+          minIntervalMs: 260,
+          path: "/assets/audio/sfx/upgrade-ready.wav",
+          playbackRate: 1.08
+        },
+        victory: {
+          gain: 0.22,
+          minIntervalMs: 900,
+          path: "/assets/audio/sfx/victory.wav"
+        }
+      };
+
+      const actions = [
+        ["UI / aceptar", "Click de menu, empezar, continuar", "ui-accept"],
+        ["Jugador dispara", "shot-fired", "shot-fired"],
+        ["Dash", "dash / nova-dash / afterimage-trail", "dash"],
+        ["Combo", "combo-surge / rescue-streak", "combo-surge"],
+        ["Artilleria carga", "artillery-lock-start", "artillery-lock-start"],
+        [
+          "Artilleria impacto",
+          "artillery-impact / comet-bloom-impact / card-purge-cast",
+          "artillery-impact"
+        ],
+        [
+          "Boost relay",
+          "relay-boost-start / gravity-well",
+          "relay-boost-start"
+        ],
+        ["Elite aparece", "elite-spawned", "elite-spawned"],
+        ["Elite muere", "elite-killed", "elite-killed"],
+        ["Elite burst", "elite-burst", "elite-burst"],
+        [
+          "Enemigo dispara",
+          "enemy-fired / comet-bloom-fired / satellite-lattice-fired",
+          "enemy-fired"
+        ],
+        ["Arena purge", "arena-purge-start", "arena-purge-start"],
+        ["Legendaria lista", "legendary-ready", "legendary-ready"],
+        ["Enemigo aparece", "enemy-spawned", "enemy-spawned"],
+        [
+          "Hit enemigo / rebotes",
+          "enemy-hit / arc-chain / rail-pierce / projectile-ricochet / starburst-rounds / arena-boundary-hit",
+          "enemy-hit"
+        ],
+        ["Enemigo muere", "enemy-killed", "enemy-killed"],
+        ["Boss aparece", "boss-spawned", "boss-spawned"],
+        ["Boss colapsa", "boss-collapse-start", "boss-collapse-start"],
+        ["Boss core expuesto", "boss-core-exposed", "boss-core-exposed"],
+        [
+          "Boss pulso fase",
+          "boss-phase-pulse-start",
+          "boss-phase-pulse-start"
+        ],
+        ["Boss cambia fase", "boss-phase-shift", "boss-phase-shift"],
+        ["Boss derrotado", "boss-defeated", "boss-defeated"],
+        [
+          "Orbe / rescate",
+          "orb-collected / rescue-saved / rescue-spawned / card-repair-cast",
+          "orb-collected"
+        ],
+        ["Dinero recogido", "money-collected", "money-collected"],
+        ["Jugador recibe dano", "player-hit / rescue-lost", "player-hit"],
+        ["Jugador muere", "player-died", "player-died"],
+        ["Nuevo record", "record-best", "record-best"],
+        ["Upgrade listo", "upgrade-ready / card-overcore-cast", "upgrade-ready"],
+        ["Victoria", "victory", "victory"]
+      ].map(([label, event, cue]) => ({
+        label,
+        event,
+        cue,
+        category: categoryForCue(cue),
+        sample: cues[cue]
+      }));
+
+      const music = [
+        {
+          label: "Menu",
+          event: "intro / title / game-over / victory",
+          cue: "darkcity",
+          category: "Musica",
+          sample: {
+            gain: 0.18,
+            path: "/assets/audio/music/darkcity.mp3"
+          }
+        },
+        {
+          label: "Batalla A",
+          event: "opcion aleatoria al entrar en una run",
+          cue: "cyberpunk",
+          category: "Musica",
+          sample: {
+            gain: 0.16,
+            path: "/assets/audio/music/cyberpunk.mp3"
+          }
+        },
+        {
+          label: "Batalla B",
+          event: "opcion aleatoria al entrar en una run",
+          cue: "jumpingcyborgmix2",
+          category: "Musica",
+          sample: {
+            gain: 0.14,
+            path: "/assets/audio/music/jumpingcyborgmix2.ogg"
+          }
+        }
+      ];
+
+      const allRows = [...actions, ...music];
+      const categorySelect = document.querySelector("#category");
+      const search = document.querySelector("#search");
+      const sfxTable = document.querySelector("#sfx-table");
+      const musicTable = document.querySelector("#music-table");
+      const sfxCount = document.querySelector("#sfx-count");
+      const musicCount = document.querySelector("#music-count");
+
+      let currentlyPlaying = null;
+
+      init();
+
+      function init() {
+        const categories = [...new Set(allRows.map((row) => row.category))].sort();
+        for (const category of categories) {
+          const option = document.createElement("option");
+          option.value = category;
+          option.textContent = category;
+          categorySelect.append(option);
+        }
+
+        search.addEventListener("input", render);
+        categorySelect.addEventListener("change", render);
+        render();
+      }
+
+      function render() {
+        const query = search.value.trim().toLowerCase();
+        const category = categorySelect.value;
+        const matches = allRows.filter((row) => {
+          const haystack = [
+            row.label,
+            row.event,
+            row.cue,
+            row.sample.path,
+            fileName(row.sample.path),
+            row.category
+          ]
+            .join(" ")
+            .toLowerCase();
+          return (
+            (category === "all" || row.category === category) &&
+            (!query || haystack.includes(query))
+          );
+        });
+
+        const sfxRows = matches.filter((row) => row.category !== "Musica");
+        const musicRows = matches.filter((row) => row.category === "Musica");
+
+        renderTable(sfxTable, sfxRows, false);
+        renderTable(musicTable, musicRows, true);
+        sfxCount.textContent = `${sfxRows.length} acciones`;
+        musicCount.textContent = `${musicRows.length} loops`;
+      }
+
+      function renderTable(table, rows, loop) {
+        table.replaceChildren(headerRow());
+        if (!rows.length) {
+          const empty = document.createElement("div");
+          empty.className = "row";
+          empty.textContent = "Sin resultados.";
+          table.append(empty);
+          return;
+        }
+
+        for (const row of rows) {
+          table.append(soundRow(row, loop));
+        }
+      }
+
+      function headerRow() {
+        const row = document.createElement("div");
+        row.className = "row head";
+        for (const text of ["Accion", "Cue", "Archivo actual", "Parametros", "Play"]) {
+          const cell = document.createElement("div");
+          cell.textContent = text;
+          row.append(cell);
+        }
+        return row;
+      }
+
+      function soundRow(row, loop) {
+        const element = document.createElement("div");
+        element.className = "row";
+        element.dataset.search = `${row.label} ${row.event} ${row.cue} ${row.sample.path}`;
+
+        const action = document.createElement("div");
+        action.className = "action";
+        action.append(text("span", "label", row.label));
+        action.append(text("span", "meta", row.event));
+
+        const cue = document.createElement("code");
+        cue.textContent = row.cue;
+
+        const file = document.createElement("div");
+        file.className = "action";
+        file.append(text("span", "file", fileName(row.sample.path)));
+        file.append(text("span", "path", row.sample.path));
+
+        const params = document.createElement("div");
+        params.className = "params";
+        params.append(pill(`gain ${row.sample.gain}`));
+        if (row.sample.playbackRate) {
+          params.append(pill(`rate ${row.sample.playbackRate}`));
+        }
+        if (row.sample.rateVariance) {
+          params.append(pill(`var ${row.sample.rateVariance}`));
+        }
+        if (row.sample.minIntervalMs) {
+          params.append(pill(`${row.sample.minIntervalMs}ms`));
+        }
+
+        const player = document.createElement("div");
+        player.className = "player";
+
+        const play = document.createElement("button");
+        play.className = "play";
+        play.type = "button";
+        play.textContent = "Play";
+        play.title = `Play ${fileName(row.sample.path)}`;
+        play.addEventListener("click", () => playSample(row.sample, loop));
+
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.preload = "metadata";
+        audio.src = resolveAudioPath(row.sample.path);
+        audio.volume = clampVolume(row.sample.gain);
+        audio.playbackRate = row.sample.playbackRate ?? 1;
+        audio.loop = loop;
+
+        player.append(play, audio);
+        element.append(action, cue, file, params, player);
+        return element;
+      }
+
+      function playSample(sample, loop) {
+        if (currentlyPlaying) {
+          currentlyPlaying.pause();
+          currentlyPlaying.currentTime = 0;
+        }
+
+        const audio = new Audio(resolveAudioPath(sample.path));
+        audio.volume = clampVolume(sample.gain);
+        audio.playbackRate = sample.playbackRate ?? 1;
+        audio.loop = loop;
+        currentlyPlaying = audio;
+        audio.play().catch(() => {
+          const message = document.createElement("span");
+          message.className = "missing";
+          message.textContent = "No se pudo reproducir.";
+          document.body.append(message);
+          window.setTimeout(() => message.remove(), 1800);
+        });
+      }
+
+      function resolveAudioPath(path) {
+        if (window.location.protocol === "file:") {
+          return `public${path}`;
+        }
+
+        return path;
+      }
+
+      function fileName(path) {
+        return path.split("/").at(-1);
+      }
+
+      function clampVolume(gain) {
+        return Math.max(0, Math.min(1, gain));
+      }
+
+      function categoryForCue(cue) {
+        if (cue.startsWith("boss-")) {
+          return "Boss";
+        }
+
+        if (cue.startsWith("enemy-") || cue.startsWith("elite-")) {
+          return "Enemigos";
+        }
+
+        if (cue.startsWith("player-") || cue === "dash" || cue === "shot-fired") {
+          return "Jugador";
+        }
+
+        if (cue.includes("upgrade") || cue.includes("record") || cue.includes("accept")) {
+          return "UI";
+        }
+
+        if (cue.includes("artillery") || cue.includes("boost") || cue.includes("combo")) {
+          return "Ataques especiales";
+        }
+
+        return "Sistema";
+      }
+
+      function text(tag, className, value) {
+        const element = document.createElement(tag);
+        element.className = className;
+        element.textContent = value;
+        return element;
+      }
+
+      function pill(value) {
+        return text("span", "pill", value);
+      }
+    </script>
+  </body>
+</html>

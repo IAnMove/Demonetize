@@ -36,6 +36,7 @@ export type FrameEventType =
   | "boss-spawned"
   | "boss-phase-shift"
   | "boss-defeated"
+  | "money-collected"
   | "orb-collected"
   | "rescue-lost"
   | "rescue-saved"

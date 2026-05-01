@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-    <title>T.O.P.E.: Corporate Purge AI</title>
+    <title>DEMONETIZED: The Authenticity Purge</title>
     <style>
       :root {
         color-scheme: dark;
@@ -41,8 +41,16 @@
           linear-gradient(rgba(49, 245, 255, 0.08) 1px, transparent 1px),
           linear-gradient(90deg, rgba(255, 91, 127, 0.08) 1px, transparent 1px),
           linear-gradient(146deg, rgba(49, 245, 255, 0.08), transparent 44%),
-          linear-gradient(28deg, rgba(255, 184, 74, 0.12), transparent 52%);
-        background-size: 4rem 4rem;
+          linear-gradient(28deg, rgba(255, 184, 74, 0.12), transparent 52%),
+          linear-gradient(90deg, rgba(2, 4, 9, 0.95), rgba(2, 4, 9, 0.42), rgba(2, 4, 9, 0.86)),
+          url("/promo/tope-cover.png") center / cover no-repeat;
+        background-size:
+          4rem 4rem,
+          4rem 4rem,
+          auto,
+          auto,
+          auto,
+          auto;
       }
 
       .boot-intro::before,
@@ -138,6 +146,62 @@
         animation: boot-pulse 1.6s ease-in-out infinite;
       }
 
+      .boot-progress {
+        display: grid;
+        gap: 0.52rem;
+        width: min(34rem, 100%);
+        margin-top: 1.05rem;
+      }
+
+      .boot-progress-track {
+        position: relative;
+        display: block;
+        height: 0.7rem;
+        overflow: hidden;
+        border: 1px solid rgba(49, 245, 255, 0.3);
+        border-radius: 999px;
+        background:
+          linear-gradient(90deg, rgba(49, 245, 255, 0.1), rgba(255, 91, 127, 0.08)),
+          rgba(2, 5, 14, 0.78);
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.04),
+          0 0 24px rgba(49, 245, 255, 0.16),
+          inset 0 0 18px rgba(0, 0, 0, 0.42);
+      }
+
+      .boot-progress-track::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0 1.4rem,
+          rgba(255, 255, 255, 0.16) 1.4rem 1.45rem
+        );
+        opacity: 0.55;
+      }
+
+      .boot-progress-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 42%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #31f5ff, #b7ff57 48%, #ff5b7f);
+        box-shadow:
+          0 0 18px rgba(49, 245, 255, 0.65),
+          0 0 26px rgba(255, 91, 127, 0.36);
+        animation: boot-progress-scan 1.35s ease-in-out infinite;
+      }
+
+      .boot-progress-readout {
+        color: #9cf8ff;
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        text-shadow: 0 0 16px rgba(49, 245, 255, 0.28);
+      }
+
       @keyframes boot-reveal {
         from {
           opacity: 0;
@@ -159,6 +223,30 @@
         }
       }
 
+      @keyframes boot-progress-scan {
+        0% {
+          transform: translateX(0);
+          width: 24%;
+        }
+        48% {
+          transform: translateX(72%);
+          width: 64%;
+        }
+        100% {
+          transform: translateX(228%);
+          width: 34%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-intro-panel,
+        .boot-intro-start,
+        .boot-progress-fill {
+          animation-duration: 1ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+
       @media (max-width: 640px) {
         .boot-intro {
           align-items: end;
@@ -173,14 +261,14 @@
         <div class="boot-intro-panel">
           <span
             class="boot-intro-kicker"
-            data-boot-en="The Authenticity Purge // 2026"
-            data-boot-es="La Purga de Autenticidad // 2026"
-          >The Authenticity Purge // 2026</span>
+            data-boot-en="DEMONETIZED: The Authenticity Purge // 2026"
+            data-boot-es="DEMONETIZED: The Authenticity Purge // 2026"
+          >DEMONETIZED: The Authenticity Purge // 2026</span>
           <p
             class="boot-intro-copy"
-            data-boot-en="Year 2026. The spaces where people create are being bought, scraped, measured, and erased. A polite corporate AI has been hired to call the human remainder inauthentic content."
-            data-boot-es="En 2026. Los espacios donde la gente crea estan siendo comprados, raspados, medidos y borrados. Una IA corporativa muy educada ha sido contratada para llamar contenido inautentico al resto humano."
-          >Year 2026. The spaces where people create are being bought, scraped, measured, and erased. A polite corporate AI has been hired to call the human remainder inauthentic content.</p>
+            data-boot-en="It's not your channel. It's TheirTube. T.O.P.E. is loading the authenticity purge contract."
+            data-boot-es="No es tu canal. Es TheirTube. T.O.P.E. esta cargando el contrato de purga de autenticidad."
+          >It's not your channel. It's TheirTube. T.O.P.E. is loading the authenticity purge contract.</p>
           <div class="boot-intro-actions">
             <span
               class="boot-intro-status"
@@ -195,13 +283,29 @@
               data-boot-es="Contrato bloqueado"
             >Contract locked</button>
           </div>
+          <div
+            class="boot-progress"
+            role="progressbar"
+            aria-label="Loading contract"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <span class="boot-progress-track">
+              <span class="boot-progress-fill"></span>
+            </span>
+            <span
+              class="boot-progress-readout"
+              data-boot-en="Authenticating CEO contract stream"
+              data-boot-es="Autenticando stream del contrato del CEO"
+            >Authenticating CEO contract stream</span>
+          </div>
         </div>
       </section>
     </div>
     <script>
       (() => {
         const stored = window.localStorage.getItem("overseer.locale");
-        const locale = (stored || window.navigator.language || "en").toLowerCase().startsWith("es")
+        const locale = (stored || "en").toLowerCase().startsWith("es")
           ? "es"
           : "en";
         document.documentElement.lang = locale;
@@ -211,6 +315,7 @@
         });
       })();
     </script>
+    <script async src="https://vibej.am/2026/widget.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
-  </html>
+</html>

@@ -12,7 +12,7 @@ type Listener = (nextState: GameState, previousState: GameState) => void;
 
 const VALID_TRANSITIONS: Record<GameState, GameState[]> = {
   boot: ["intro"],
-  intro: ["title"],
+  intro: ["title", "playing"],
   title: ["playing", "between-waves"],
   playing: ["chapter-transition", "between-waves", "game-over", "victory"],
   "chapter-transition": ["playing"],

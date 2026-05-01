@@ -30,12 +30,16 @@ import {
   type Vec2
 } from "./math";
 import {
+  createMoneyPickup,
   createOrbPickup,
   createRescuePickup,
+  getMoneySnapshots,
   getOrbPositions,
   getRescueSnapshots,
+  updateMoneyPickups,
   updateOrbPickups,
   updateRescuePickups,
+  type MoneyPickup,
   type OrbPickup,
   type RescuePickup
 } from "./progression/pickups";
@@ -83,6 +87,7 @@ export interface GameSession {
   bestRescueStreak: number;
   bossPulseCooldown: number;
   bossPulses: BossPulseState[];
+  channelsDestroyed: number;
   cometBloomCooldown: number;
   comboCount: number;
   comboTimer: number;
@@ -92,6 +97,8 @@ export interface GameSession {
   gravityWells: GravityWellState[];
   haloDroneCooldown: number;
   lostRescueCount: number;
+  moneyEarned: number;
+  moneyPickups: MoneyPickup[];
   nextActionCardInstance: number;
   nextEnemyId: number;
   orbs: OrbPickup[];
@@ -161,12 +168,15 @@ export interface SessionSnapshot {
   bestRescueStreak: number;
   boss: BossSnapshot | null;
   bossPulses: BossPulseSnapshot[];
+  channelsDestroyed: number;
   comboCount: number;
   comboRatio: number;
   dangerLevel: number;
   enemies: EnemyVisualSnapshot[];
   elapsedSeconds: number;
   lostRescueCount: number;
+  moneyEarned: number;
+  moneyPickups: Array<{ amount: number; position: Vec2 }>;
   orbs: Vec2[];
   player: PlayerState;
   progression: ProgressionSnapshot;
@@ -233,6 +243,7 @@ const HALO_DRONE_FIRE_SECONDS = 0.72;
 const SATELLITE_LATTICE_FIRE_SECONDS = 2.35;
 const COMET_BLOOM_FIRE_SECONDS = 3.8;
 const AFTERIMAGE_TRAIL_SECONDS = 0.09;
+const MONEY_ROLL_MODULUS = 9973;
 
 export type DebugBuildPresetId =
   | "baseline"
@@ -530,6 +541,7 @@ export function createGameSession(): GameSession {
     bestRescueStreak: 0,
     bossPulseCooldown: 0,
     bossPulses: [],
+    channelsDestroyed: 0,
     cometBloomCooldown: COMET_BLOOM_FIRE_SECONDS,
     comboCount: 0,
     comboTimer: 0,
@@ -539,6 +551,8 @@ export function createGameSession(): GameSession {
     gravityWells: [],
     haloDroneCooldown: HALO_DRONE_FIRE_SECONDS * 0.45,
     lostRescueCount: 0,
+    moneyEarned: 0,
+    moneyPickups: [],
     nextActionCardInstance: 1,
     nextEnemyId: 1,
     orbs: [],
@@ -606,12 +620,15 @@ export function getSessionSnapshot(session: GameSession): SessionSnapshot {
       progress: 1 - pulse.timeRemaining / pulse.duration,
       radius: getBossPulseRadius(pulse)
     })),
+    channelsDestroyed: session.channelsDestroyed,
     comboCount: session.comboCount,
     comboRatio: clamp(session.comboTimer / COMBO_WINDOW_SECONDS, 0, 1),
     dangerLevel: session.dangerLevel,
     enemies: getEnemyVisuals(session.enemies),
     elapsedSeconds: session.elapsedSeconds,
     lostRescueCount: session.lostRescueCount,
+    moneyEarned: session.moneyEarned,
+    moneyPickups: getMoneySnapshots(session.moneyPickups),
     orbs: getOrbPositions(session.orbs),
     player: session.player,
     progression: {
@@ -651,6 +668,7 @@ export function resetGameSession(session: GameSession): void {
   session.bestRescueStreak = 0;
   session.bossPulseCooldown = 0;
   session.bossPulses.length = 0;
+  session.channelsDestroyed = 0;
   session.cometBloomCooldown = COMET_BLOOM_FIRE_SECONDS;
   session.comboCount = 0;
   session.comboTimer = 0;
@@ -660,6 +678,8 @@ export function resetGameSession(session: GameSession): void {
   session.gravityWells.length = 0;
   session.haloDroneCooldown = HALO_DRONE_FIRE_SECONDS * 0.45;
   session.lostRescueCount = 0;
+  session.moneyEarned = 0;
+  session.moneyPickups.length = 0;
   session.nextActionCardInstance = 1;
   session.nextEnemyId = 1;
   session.orbs.length = 0;
@@ -684,6 +704,7 @@ function clearCombatForDebug(session: GameSession): void {
   session.bossPulses.length = 0;
   session.enemies.length = 0;
   session.gravityWells.length = 0;
+  session.moneyPickups.length = 0;
   session.orbs.length = 0;
   session.pendingSpawns.length = 0;
   resetProjectiles(session.projectiles);
@@ -897,6 +918,20 @@ export function updateGameSession(
     });
   }
 
+  const collectedMoney = updateMoneyPickups(
+    session.moneyPickups,
+    session.player,
+    deltaSeconds
+  );
+  for (const pickup of collectedMoney) {
+    session.moneyEarned += pickup.amount;
+    frameEvents.push({
+      amount: pickup.amount,
+      position: pickup.position,
+      type: "money-collected"
+    });
+  }
+
   const rescueUpdate = updateRescuePickups(
     session.rescues,
     session.player,
@@ -999,6 +1034,7 @@ export function updateGameSession(
   );
 
   if (resolution === "between-waves") {
+    awardWaveClearMoney(session, "between-waves");
     const selectedChoices = session.selectedUpgradeIds.map((id) =>
       getUpgradeChoice(id)
     );
@@ -1016,6 +1052,7 @@ export function updateGameSession(
       type: "upgrade-ready"
     });
   } else if (resolution === "chapter-transition") {
+    awardWaveClearMoney(session, "chapter-transition");
     const selectedChoices = session.selectedUpgradeIds.map((id) =>
       getUpgradeChoice(id)
     );
@@ -1033,6 +1070,8 @@ export function updateGameSession(
       position: { ...session.player.position },
       type: "upgrade-ready"
     });
+  } else if (resolution === "victory") {
+    awardWaveClearMoney(session, "victory");
   }
 
   return {
@@ -1800,9 +1839,15 @@ function registerKill(
   session.comboCount += 1;
   session.comboTimer = COMBO_WINDOW_SECONDS;
   session.bestCombo = Math.max(session.bestCombo, session.comboCount);
+  if (enemy.archetype !== "overseer") {
+    session.channelsDestroyed += 1;
+  }
   session.score += Math.round(
     enemy.rewardScore * (1 + Math.min(session.comboCount - 1, 8) * 0.16)
   );
+  if (enemy.archetype === "overseer") {
+    session.moneyEarned += getEnemyMoneyReward(session, enemy);
+  }
 
   if (COMBO_MILESTONES.includes(session.comboCount)) {
     frameEvents.push({
@@ -1811,6 +1856,139 @@ function registerKill(
       type: "combo-surge"
     });
   }
+}
+
+function awardWaveClearMoney(
+  session: GameSession,
+  resolution: "between-waves" | "chapter-transition" | "victory"
+): void {
+  const multiplier =
+    resolution === "victory"
+      ? 0.08
+      : resolution === "chapter-transition"
+        ? 0.06
+        : 0.025;
+  const cap =
+    resolution === "victory"
+      ? 24
+      : resolution === "chapter-transition"
+        ? 18
+        : 10;
+  const floor = resolution === "between-waves" ? 1 : 4;
+  const bonus = clamp(Math.round(session.moneyEarned * multiplier), floor, cap);
+  session.moneyEarned += bonus;
+}
+
+function dropMoneyReward(session: GameSession, enemy: EnemyState): void {
+  if (!shouldDropMoneyReward(session, enemy)) {
+    return;
+  }
+
+  const amount = getEnemyMoneyReward(session, enemy);
+  if (amount <= 0) {
+    return;
+  }
+
+  session.moneyPickups.push(
+    createMoneyPickup(getMoneyDropPosition(session, enemy), amount)
+  );
+}
+
+function shouldDropMoneyReward(session: GameSession, enemy: EnemyState): boolean {
+  if (enemy.archetype === "overseer") {
+    return false;
+  }
+
+  if (enemy.isElite) {
+    return true;
+  }
+
+  const chance = (() => {
+    switch (enemy.archetype) {
+      case "drone":
+        return 0.46;
+      case "charger":
+      case "sentry":
+        return 0.68;
+      case "artillery":
+      case "relay":
+        return 0.95;
+      default:
+        return 0.62;
+    }
+  })();
+
+  return getEnemyRewardRoll(session, enemy, 43) <= chance;
+}
+
+function getMoneyDropPosition(session: GameSession, enemy: EnemyState): Vec2 {
+  const angle = getEnemyRewardRoll(session, enemy, 107) * Math.PI * 2;
+  const distanceFromKill = 0.16 + getEnemyRewardRoll(session, enemy, 211) * 0.34;
+
+  return {
+    x: enemy.position.x + Math.cos(angle) * distanceFromKill,
+    y: enemy.position.y + Math.sin(angle) * distanceFromKill
+  };
+}
+
+function getEnemyMoneyReward(session: GameSession, enemy: EnemyState): number {
+  if (enemy.archetype === "overseer") {
+    const bossProgress = clamp(
+      (session.waveDirector.currentWave - GAME_CONFIG.chapterTransitionWave) /
+        (GAME_CONFIG.finalWave - GAME_CONFIG.chapterTransitionWave),
+      0,
+      1
+    );
+    return Math.round(60 + bossProgress * 60);
+  }
+
+  if (enemy.isElite) {
+    return rollMoneyRange(session, enemy, 12, 25);
+  }
+
+  switch (enemy.archetype) {
+    case "drone":
+      return rollMoneyRange(session, enemy, 1, 3);
+    case "charger":
+    case "sentry":
+      return rollMoneyRange(session, enemy, 4, 8);
+    case "artillery":
+    case "relay":
+      return rollMoneyRange(session, enemy, 12, 18);
+    default:
+      return rollMoneyRange(session, enemy, 4, 8);
+  }
+}
+
+function rollMoneyRange(
+  session: GameSession,
+  enemy: EnemyState,
+  min: number,
+  max: number
+): number {
+  const span = max - min + 1;
+  const seed =
+    enemy.id * 131 +
+    session.waveDirector.currentWave * 17 +
+    session.waveDirector.chapter * 29 +
+    enemy.rewardScore * 7;
+  const roll = Math.abs(seed) % MONEY_ROLL_MODULUS;
+  return min + (roll % span);
+}
+
+function getEnemyRewardRoll(
+  session: GameSession,
+  enemy: EnemyState,
+  salt: number
+): number {
+  const seed =
+    enemy.id * 131 +
+    session.waveDirector.currentWave * 17 +
+    session.waveDirector.chapter * 29 +
+    enemy.rewardScore * 7 +
+    salt;
+  const roll = Math.abs(seed) % MONEY_ROLL_MODULUS;
+  return roll / (MONEY_ROLL_MODULUS - 1);
 }
 
 function emitEnemyDeathEvents(
@@ -1862,6 +2040,7 @@ function dropEnemyRewards(
   }
 
   session.rescueCharge += enemy.rewardScore * (enemy.isElite ? 1.35 : 1);
+  dropMoneyReward(session, enemy);
 
   for (let orbIndex = 0; orbIndex < enemy.rewardOrbCount; orbIndex += 1) {
     session.orbs.push(createOrbPickup(enemy.position));

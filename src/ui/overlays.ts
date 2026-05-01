@@ -1,9 +1,16 @@
 import type { I18nController, Locale } from "../core/i18n";
+import {
+  formatMoney,
+  getMetaUpgradeRank,
+  getNextMetaUpgradeCost,
+  META_UPGRADES,
+  type MetaProgressionState,
+  type MetaUpgradeId
+} from "../core/metaProgression";
 import type { GameState } from "../core/stateMachine";
 import type { LastRunRecord, RecordHighlights, RunRecords } from "../core/runRecords";
 import {
   getBuildProfile,
-  getUpgradeFit,
   getUpgradeArchetypeTags,
   type BuildArchetype
 } from "../gameplay/progression/builds";
@@ -16,9 +23,23 @@ import {
 } from "../gameplay/progression/upgrades";
 import { createBoostCardFace } from "./boostCards";
 
+const META_UPGRADE_ICON_CLASS: Record<MetaUpgradeId, string> = {
+  "aggressive-audit": "damage",
+  "collection-reach": "pickup",
+  "expedited-process": "cooldown",
+  "initial-budget": "cards",
+  "legal-armor": "armor",
+  "orbital-infra": "orbit",
+  "preferred-contract": "reroll",
+  "reputation-insurance": "shield"
+};
+
 interface OverlayHandlers {
   onContinueChapter: () => void;
+  onPurchaseMetaUpgrade: (upgradeId: MetaUpgradeId) => void;
   onRestart: () => void;
+  onReturnToTitle: () => void;
+  onRerollDraft: () => void;
   onSelectUpgrade: (upgradeId: UpgradeId) => void;
   onSkipIntro: () => void;
   onStart: () => void;
@@ -27,6 +48,7 @@ interface OverlayHandlers {
 interface RunSummary {
   bestCombo: number;
   bestRescueStreak: number;
+  channelsDestroyed: number;
   chapter: number;
   elapsedSeconds: number;
   lossReason?:
@@ -43,6 +65,7 @@ interface RunSummary {
     | "relay"
     | "sentry";
   lostRescueCount: number;
+  moneyEarned: number;
   rank: "a" | "b" | "c" | "d" | "s";
   rescuedCount: number;
   score: number;
@@ -53,13 +76,18 @@ interface RunSummary {
 
 type ProgressionMode = "opening-action" | "upgrade";
 
+interface UpgradeCardRenderOptions {
+  compactAction?: boolean;
+}
+
 export interface OverlayController {
   setRecords: (records: RunRecords) => void;
   setChapterTransition: (
     chapter: number,
     availableChoices: UpgradeChoice[],
     selectedChoices: UpgradeChoice[],
-    rescueBonusUnlocked: boolean
+    rescueBonusUnlocked: boolean,
+    rerollsRemaining?: number
   ) => void;
   setProgression: (
     choices: UpgradeChoice[],
@@ -67,8 +95,11 @@ export interface OverlayController {
     waveNumber: number,
     summary: RunSummary,
     rescueBonusUnlocked: boolean,
-    mode?: ProgressionMode
+    mode?: ProgressionMode,
+    rerollsRemaining?: number,
+    picksRemaining?: number
   ) => void;
+  setMetaProgression: (state: MetaProgressionState) => void;
   setRunSummary: (summary: RunSummary, highlights?: RecordHighlights) => void;
   setState: (state: GameState) => void;
 }
@@ -76,11 +107,15 @@ export interface OverlayController {
 export function createOverlays(
   container: HTMLDivElement,
   handlers: OverlayHandlers,
-  i18n: I18nController
+  i18n: I18nController,
+  initialMetaProgression: MetaProgressionState
 ): OverlayController {
+  let metaProgression = initialMetaProgression;
   let progressionChoices: UpgradeChoice[] = [];
   let progressionBonusUnlocked = false;
   let progressionMode: ProgressionMode = "upgrade";
+  let progressionPicksRemaining = 1;
+  let progressionRerollsRemaining = 0;
   let progressionSelected: UpgradeChoice[] = [];
   let progressionWave = 0;
   let records: RunRecords = {
@@ -97,12 +132,15 @@ export function createOverlays(
   let chapterTransitionAvailable: UpgradeChoice[] = [];
   let chapterTransitionBonusUnlocked = false;
   let chapterTransitionChoices: UpgradeChoice[] = [];
+  let chapterTransitionRerollsRemaining = 0;
   let progressionSummary: RunSummary = {
     bestCombo: 0,
     bestRescueStreak: 0,
+    channelsDestroyed: 0,
     chapter: 1,
     elapsedSeconds: 0,
     lostRescueCount: 0,
+    moneyEarned: 0,
     rank: "d",
     rescuedCount: 0,
     score: 0,
@@ -113,9 +151,11 @@ export function createOverlays(
   let runSummary: RunSummary = {
     bestCombo: 0,
     bestRescueStreak: 0,
+    channelsDestroyed: 0,
     chapter: 1,
     elapsedSeconds: 0,
     lostRescueCount: 0,
+    moneyEarned: 0,
     rank: "d",
     rescuedCount: 0,
     score: 0,
@@ -192,10 +232,12 @@ export function createOverlays(
   introScreen.append(introBackdrop, introPanel);
 
   const titleScreen = document.createElement("section");
-  titleScreen.className = "screen";
+  titleScreen.className = "screen title-screen";
 
   const titlePanel = document.createElement("div");
   titlePanel.className = "screen-panel";
+  const titleContractPanel = document.createElement("div");
+  titleContractPanel.className = "title-contract-panel";
 
   const titleEyebrow = document.createElement("span");
   titleEyebrow.className = "eyebrow";
@@ -227,6 +269,20 @@ export function createOverlays(
   const titleWinsCard = createRunMetricCard();
   const titleWinRateCard = createRunMetricCard();
   titleStats.append(titleRunsCard.root, titleWinsCard.root, titleWinRateCard.root);
+  const metaShop = document.createElement("section");
+  metaShop.className = "meta-shop";
+  const metaShopHeader = document.createElement("div");
+  metaShopHeader.className = "meta-shop-header";
+  const metaShopTitle = document.createElement("h2");
+  metaShopTitle.className = "meta-shop-title";
+  const metaShopWallet = document.createElement("strong");
+  metaShopWallet.className = "meta-shop-wallet";
+  const metaShopLedger = document.createElement("p");
+  metaShopLedger.className = "micro-copy";
+  const metaShopGrid = document.createElement("div");
+  metaShopGrid.className = "meta-shop-grid";
+  metaShopHeader.append(metaShopTitle, metaShopWallet);
+  metaShop.append(metaShopHeader, metaShopLedger, metaShopGrid);
   const titleGoalLabel = document.createElement("p");
   titleGoalLabel.className = "micro-copy";
   const titleGoal = document.createElement("p");
@@ -246,19 +302,16 @@ export function createOverlays(
 
   titleActions.append(startButton, startHint);
   titleReadout.append(titlePlayerTag, titleEnemyTag, titleDraftTag);
-  titlePanel.append(
+  titleContractPanel.append(
     titleEyebrow,
     titleHeading.root,
     titleCopy,
     titleStats,
     titleLastRunLabel,
     titleLastRun,
-    titleLastRunBuild,
-    titleGoalLabel,
-    titleGoal,
-    titleGoalSupport,
     titleActions
   );
+  titlePanel.append(titleContractPanel, metaShop);
   titleScreen.appendChild(titlePanel);
 
   const chapterScreen = document.createElement("section");
@@ -283,6 +336,15 @@ export function createOverlays(
   chapterUpgradeLabel.className = "micro-copy";
   const chapterUpgradeGrid = document.createElement("div");
   chapterUpgradeGrid.className = "upgrade-grid";
+  const chapterDraftActions = document.createElement("div");
+  chapterDraftActions.className = "draft-actions";
+  const chapterRerollButton = document.createElement("button");
+  chapterRerollButton.className = "draft-reroll-button";
+  chapterRerollButton.type = "button";
+  chapterRerollButton.addEventListener("click", handlers.onRerollDraft);
+  const chapterRerollStatus = document.createElement("span");
+  chapterRerollStatus.className = "micro-copy";
+  chapterDraftActions.append(chapterRerollButton, chapterRerollStatus);
 
   const chapterActions = document.createElement("div");
   chapterActions.className = "screen-actions";
@@ -299,6 +361,7 @@ export function createOverlays(
     chapterSummary,
     chapterInstalled,
     chapterUpgradeLabel,
+    chapterDraftActions,
     chapterUpgradeGrid,
     chapterActions
   );
@@ -325,6 +388,15 @@ export function createOverlays(
   upgradeTelemetry.className = "micro-copy";
   const upgradeBuild = document.createElement("p");
   upgradeBuild.className = "run-support";
+  const upgradeDraftActions = document.createElement("div");
+  upgradeDraftActions.className = "draft-actions";
+  const upgradeRerollButton = document.createElement("button");
+  upgradeRerollButton.className = "draft-reroll-button";
+  upgradeRerollButton.type = "button";
+  upgradeRerollButton.addEventListener("click", handlers.onRerollDraft);
+  const upgradeRerollStatus = document.createElement("span");
+  upgradeRerollStatus.className = "micro-copy";
+  upgradeDraftActions.append(upgradeRerollButton, upgradeRerollStatus);
 
   const upgradeGrid = document.createElement("div");
   upgradeGrid.className = "upgrade-grid";
@@ -336,6 +408,7 @@ export function createOverlays(
     upgradeHistory,
     upgradeTelemetry,
     upgradeBuild,
+    upgradeDraftActions,
     upgradeGrid
   );
   betweenWavesScreen.appendChild(betweenWavesPanel);
@@ -345,7 +418,7 @@ export function createOverlays(
   gameOverScreen.hidden = true;
 
   const gameOverPanel = document.createElement("div");
-  gameOverPanel.className = "screen-panel";
+  gameOverPanel.className = "screen-panel is-run-summary-panel";
 
   const gameOverEyebrow = document.createElement("span");
   gameOverEyebrow.className = "eyebrow";
@@ -362,7 +435,7 @@ export function createOverlays(
   const gameOverHighlights = document.createElement("div");
   gameOverHighlights.className = "summary-strip";
   const gameOverMetrics = document.createElement("div");
-  gameOverMetrics.className = "run-metric-grid";
+  gameOverMetrics.className = "run-metric-grid is-run-summary";
   const gameOverBuild = document.createElement("p");
   gameOverBuild.className = "run-support";
   const gameOverChase = document.createElement("p");
@@ -379,13 +452,17 @@ export function createOverlays(
 
   const restartButton = document.createElement("button");
   restartButton.addEventListener("click", handlers.onRestart);
+  const gameOverMenuButton = document.createElement("button");
+  gameOverMenuButton.className = "secondary-action-button";
+  gameOverMenuButton.type = "button";
+  gameOverMenuButton.addEventListener("click", handlers.onReturnToTitle);
 
   const restartHint = document.createElement("span");
   restartHint.className = "micro-copy";
 
   const gameOverLegend = createControlLegend(i18n);
 
-  restartActions.append(restartButton, restartHint);
+  restartActions.append(restartButton, gameOverMenuButton, restartHint);
   gameOverPanel.append(
     gameOverEyebrow,
     gameOverHeading.root,
@@ -410,7 +487,7 @@ export function createOverlays(
   victoryScreen.hidden = true;
 
   const victoryPanel = document.createElement("div");
-  victoryPanel.className = "screen-panel";
+  victoryPanel.className = "screen-panel is-run-summary-panel";
 
   const victoryEyebrow = document.createElement("span");
   victoryEyebrow.className = "eyebrow";
@@ -428,7 +505,7 @@ export function createOverlays(
   const victoryHighlights = document.createElement("div");
   victoryHighlights.className = "summary-strip";
   const victoryMetrics = document.createElement("div");
-  victoryMetrics.className = "run-metric-grid";
+  victoryMetrics.className = "run-metric-grid is-run-summary";
   const victoryBuild = document.createElement("p");
   victoryBuild.className = "run-support";
   const victoryChase = document.createElement("p");
@@ -445,11 +522,15 @@ export function createOverlays(
 
   const victoryRestartButton = document.createElement("button");
   victoryRestartButton.addEventListener("click", handlers.onRestart);
+  const victoryMenuButton = document.createElement("button");
+  victoryMenuButton.className = "secondary-action-button";
+  victoryMenuButton.type = "button";
+  victoryMenuButton.addEventListener("click", handlers.onReturnToTitle);
 
   const victoryHint = document.createElement("span");
   victoryHint.className = "micro-copy";
 
-  victoryActions.append(victoryRestartButton, victoryHint);
+  victoryActions.append(victoryRestartButton, victoryMenuButton, victoryHint);
   victoryPanel.append(
     victoryEyebrow,
     victoryHeading.root,
@@ -479,6 +560,18 @@ export function createOverlays(
     victoryScreen
   );
 
+  gameOverCopy.hidden = true;
+  gameOverBuild.hidden = true;
+  gameOverChase.hidden = true;
+  gameOverSummary.hidden = true;
+  gameOverInstalled.hidden = true;
+  victoryCopy.hidden = true;
+  victoryTagline.hidden = true;
+  victoryBuild.hidden = true;
+  victoryChase.hidden = true;
+  victorySummary.hidden = true;
+  victoryInstalled.hidden = true;
+
   const renderLocale = (locale: Locale): void => {
     localeLabel.textContent = i18n.t("locale.label");
     spanishButton.classList.toggle("is-active", locale === "es");
@@ -495,7 +588,7 @@ export function createOverlays(
       case "artillery":
         return isSpanish ? `${label}: impacto de reportes` : `${label}: mass-report impact`;
       case "boss-beam":
-        return isSpanish ? `${label}: rayo del Algoritmo` : `${label}: Algorithm beam`;
+        return isSpanish ? `${label}: rayo del Algoritmo de TheirTube` : `${label}: TheirTube Algorithm beam`;
       case "boss-pulse":
         return isSpanish ? `${label}: pulso de fase` : `${label}: phase pulse`;
       case "charger":
@@ -503,13 +596,13 @@ export function createOverlays(
       case "drone":
         return isSpanish ? `${label}: contacto de rastreador` : `${label}: scout contact`;
       case "edge":
-        return isSpanish ? `${label}: borde del feed` : `${label}: feed edge`;
+        return isSpanish ? `${label}: borde del Feed de TheirTube` : `${label}: TheirTube Feed edge`;
       case "elite-burst":
         return isSpanish ? `${label}: nucleo volatil` : `${label}: volatile core`;
       case "overseer":
-        return isSpanish ? `${label}: embestida del Algoritmo` : `${label}: Algorithm rush`;
+        return isSpanish ? `${label}: embestida del Algoritmo de TheirTube` : `${label}: TheirTube Algorithm rush`;
       case "purge":
-        return isSpanish ? `${label}: barrido de borrado` : `${label}: deletion sweep`;
+        return isSpanish ? `${label}: barrido de autenticidad` : `${label}: authenticity sweep`;
       case "relay":
         return isSpanish ? `${label}: amplificacion bot` : `${label}: bot amplification`;
       case "sentry":
@@ -588,9 +681,11 @@ export function createOverlays(
   const createSummaryFromLastRun = (lastRun: LastRunRecord): RunSummary => ({
     bestCombo: lastRun.bestCombo,
     bestRescueStreak: 0,
+    channelsDestroyed: 0,
     chapter: lastRun.chapter,
     elapsedSeconds: lastRun.elapsedSeconds,
     lostRescueCount: 0,
+    moneyEarned: 0,
     rank: lastRun.rank,
     rescuedCount: 0,
     score: lastRun.score,
@@ -620,6 +715,37 @@ export function createOverlays(
       records.totalRuns > 0
         ? `${Math.round((records.victories / records.totalRuns) * 100)}%`
         : "--";
+  };
+
+  const renderMetaShop = (): void => {
+    metaShopTitle.textContent = i18n.t("meta.shopTitle");
+    metaShopWallet.textContent = formatMoney(metaProgression.wallet);
+    metaShopLedger.textContent = i18n.t("meta.ledger", {
+      earned: formatMoney(metaProgression.lifetimeEarned),
+      spent: formatMoney(metaProgression.totalSpent)
+    });
+    metaShopGrid.replaceChildren(
+      ...META_UPGRADES.map((upgrade) =>
+        createMetaUpgradeButton(upgrade.id, metaProgression, handlers, i18n)
+      )
+    );
+  };
+
+  const renderDraftRerolls = (
+    button: HTMLButtonElement,
+    status: HTMLSpanElement,
+    rerollsRemaining: number,
+    canReroll: boolean
+  ): void => {
+    const showReroll = canReroll && rerollsRemaining > 0;
+    if (button.parentElement instanceof HTMLElement) {
+      button.parentElement.hidden = !showReroll;
+    }
+    button.textContent = `${i18n.t("draft.reroll")} ${rerollsRemaining}`;
+    button.hidden = !showReroll;
+    button.disabled = !showReroll;
+    status.hidden = true;
+    status.textContent = "";
   };
 
   const renderRankLine = (summary: RunSummary): string =>
@@ -657,8 +783,8 @@ export function createOverlays(
       }
       if (summary.rank === "s") {
         return isSpanish
-          ? "Evento de Extincion del Algoritmo"
-          : "Algorithm Extinction Event";
+          ? "Evento de Riesgo de TheirTube"
+          : "TheirTube Liability Event";
       }
       if (profile.primary === "dash-killer") {
         return isSpanish ? "Santo del Impacto de Apelacion" : "Appeal Impact Saint";
@@ -669,7 +795,7 @@ export function createOverlays(
       if (profile.primary === "spread-control") {
         return isSpanish ? "Huracan de Senal" : "Signal Hurricane";
       }
-      return isSpanish ? "Superviviente del Feed" : "Feed Survivor";
+      return isSpanish ? "Superviviente de TheirTube" : "TheirTube Survivor";
     }
 
     if (summary.waveNumber <= 2) {
@@ -693,7 +819,7 @@ export function createOverlays(
     if (profile.primary === "spread-control") {
       return isSpanish ? "Fanatico de Senal" : "Signal Fanatic";
     }
-    return isSpanish ? "Heroe del Upload Roto" : "Broken Upload Hero";
+    return isSpanish ? "Operador de Canal Revocado" : "Revoked Channel Operator";
   };
 
   const renderBuildLineFromChoices = (selectedChoices: UpgradeChoice[]): string => {
@@ -890,22 +1016,22 @@ export function createOverlays(
       return isSpanish
         ? {
             primary: "Mejora la restauracion",
-            secondary: "Estas dejando demasiadas apelaciones expirar dentro de The Feed."
+            secondary: "Estas dejando demasiadas apelaciones expirar dentro del Feed de TheirTube."
           }
         : {
             primary: "Improve restoration",
-            secondary: "Too many creator appeals are expiring inside The Feed."
+            secondary: "Too many creator appeals are expiring inside TheirTube's Feed."
           };
     }
 
     return isSpanish
       ? {
           primary: "Encadena una run mas limpia",
-          secondary: "Mantén presión alta y convierte el clear en una demolición."
+          secondary: "Manten presion alta y convierte el clear en un evento de compliance."
         }
       : {
           primary: "Chain a cleaner run",
-          secondary: "Keep pressure high and turn the clear into a demolition."
+          secondary: "Keep pressure high and turn the clear into a compliance event."
         };
   };
 
@@ -913,42 +1039,29 @@ export function createOverlays(
     target: HTMLDivElement,
     summary: RunSummary
   ): void => {
-    const paceValue =
-      records.fastestVictorySeconds !== null
-        ? summary.elapsedSeconds <= records.fastestVictorySeconds
-          ? i18n.getLocale() === "es"
-            ? "PB"
-            : "PB"
-          : `+${(summary.elapsedSeconds - records.fastestVictorySeconds).toFixed(1)}s`
-        : `${summary.elapsedSeconds.toFixed(1)}s`;
+    const channelsCard = createRunMetricCard(
+      i18n.t("summary.card.channels"),
+      `${summary.channelsDestroyed}`,
+      i18n.t("summary.card.channelsSupport")
+    );
+    channelsCard.root.classList.add("is-primary-summary");
+
+    const moneyCard = createRunMetricCard(
+      i18n.t("summary.card.money"),
+      formatMoney(summary.moneyEarned),
+      ""
+    );
+    moneyCard.root.classList.add("is-primary-summary", "is-money-summary");
+    const stolenLabel = document.createElement("s");
+    stolenLabel.textContent = i18n.t("summary.card.moneyStolen");
+    moneyCard.support.replaceChildren(
+      stolenLabel,
+      document.createTextNode(` ${i18n.t("summary.card.moneyRetained")}`)
+    );
+
     target.replaceChildren(
-      createRunMetricCard(
-        i18n.t("summary.card.score"),
-        `${summary.score}`,
-        records.bestScore > summary.score ? `-${records.bestScore - summary.score}` : "PB"
-      ).root,
-      createRunMetricCard(
-        i18n.t("summary.card.chain"),
-        `x${summary.bestCombo}`,
-        records.bestCombo > summary.bestCombo ? `-${records.bestCombo - summary.bestCombo}` : "PB"
-      ).root,
-      createRunMetricCard(
-        i18n.t("summary.card.depth"),
-        `C${summary.chapter}-${i18n.getLocale() === "es" ? "O" : "W"}${summary.waveNumber}`,
-        records.bestWave > summary.waveNumber ? `-${records.bestWave - summary.waveNumber}` : "PB"
-      ).root,
-      createRunMetricCard(
-        i18n.t("summary.card.rescue"),
-        summary.rescuedCount + summary.lostRescueCount > 0
-          ? `${summary.rescuedCount}/${summary.rescuedCount + summary.lostRescueCount}`
-          : "--",
-        summary.lostRescueCount > 0
-          ? `${renderRescueEfficiency(summary)} / ${i18n.getLocale() === "es" ? "perdidos" : "lost"} ${summary.lostRescueCount}`
-          : `${renderRescueEfficiency(summary)} / ${
-              i18n.getLocale() === "es" ? "limpio" : "clean"
-            } / x${summary.bestRescueStreak}`
-      ).root,
-      createRunMetricCard(i18n.t("summary.card.pace"), `${summary.elapsedSeconds.toFixed(1)}s`, paceValue).root
+      channelsCard.root,
+      moneyCard.root
     );
   };
 
@@ -969,6 +1082,7 @@ export function createOverlays(
     titleLastRun.textContent = renderLastRunLine();
     updateTitleLastRunBuild();
     renderTitleStats();
+    renderMetaShop();
     titleGoalLabel.textContent = i18n.t("summary.nextGoal");
     const titleGoalCopy = renderNextGoal(records.lastRun
       ? createSummaryFromLastRun(records.lastRun)
@@ -1002,13 +1116,18 @@ export function createOverlays(
     chapterButton.textContent = i18n.t("chapter.continue");
     chapterButton.hidden = chapterTransitionAvailable.length > 0;
     chapterActions.hidden = chapterTransitionAvailable.length > 0;
+    renderDraftRerolls(
+      chapterRerollButton,
+      chapterRerollStatus,
+      chapterTransitionRerollsRemaining,
+      chapterTransitionAvailable.length > 0
+    );
     chapterUpgradeGrid.replaceChildren(
       ...chapterTransitionAvailable.map((choice, index) =>
         createUpgradeCard(
           choice,
           handlers,
           i18n,
-          chapterTransitionChoices,
           index
         )
       )
@@ -1034,15 +1153,24 @@ export function createOverlays(
           : i18n.t("upgrade.copy");
     upgradeTelemetry.textContent =
       progressionMode === "opening-action"
-        ? i18n.t("opening.count", { count: progressionChoices.length })
+        ? i18n.t("opening.count", {
+            count: progressionChoices.length,
+            picks: progressionPicksRemaining
+          })
         : i18n.t("summary.telemetry", {
             chain: progressionSummary.bestCombo,
             score: progressionSummary.score
           });
     upgradeBuild.textContent =
       progressionMode === "opening-action"
-        ? i18n.t("opening.build")
+        ? i18n.t("opening.build", { picks: progressionPicksRemaining })
         : renderBuildLineFromChoices(progressionSelected);
+    renderDraftRerolls(
+      upgradeRerollButton,
+      upgradeRerollStatus,
+      progressionRerollsRemaining,
+      progressionMode === "upgrade" && progressionChoices.length > 0
+    );
 
     gameOverEyebrow.textContent = i18n.t("gameOver.eyebrow");
     gameOverHeading.main.textContent = i18n.t("gameOver.titleMain");
@@ -1059,6 +1187,7 @@ export function createOverlays(
     gameOverSummary.textContent = renderGameOverSummaryLine(runSummary);
     gameOverInstalled.textContent = renderInstalledLine(runSummary.selectedChoices);
     restartButton.textContent = i18n.t("gameOver.restart");
+    gameOverMenuButton.textContent = i18n.t("gameOver.menu");
     restartHint.textContent = i18n.t("gameOver.hint");
 
     victoryEyebrow.textContent = i18n.t("victory.eyebrow");
@@ -1080,41 +1209,52 @@ export function createOverlays(
     });
     victoryInstalled.textContent = renderSummaryLine(runSummary);
     victoryRestartButton.textContent = i18n.t("victory.restart");
+    victoryMenuButton.textContent = i18n.t("victory.menu");
     victoryHint.textContent = i18n.t("victory.hint");
 
     renderProgression();
   };
 
   const renderProgression = (): void => {
+    const isOpeningDraft = progressionMode === "opening-action";
     betweenWavesPanel.classList.toggle(
       "is-opening-draft",
-      progressionMode === "opening-action"
+      isOpeningDraft
     );
     upgradeGrid.classList.toggle(
       "is-action-draft",
-      progressionMode === "opening-action"
+      isOpeningDraft
     );
+    betweenEyebrow.hidden = true;
+    betweenCopy.hidden = true;
+    upgradeHistory.hidden = true;
+    upgradeTelemetry.hidden = true;
+    upgradeBuild.hidden = true;
     betweenEyebrow.textContent =
-      progressionMode === "opening-action"
+      isOpeningDraft
         ? i18n.t("opening.eyebrow")
         : i18n.t("upgrade.eyebrow");
     betweenHeading.main.textContent =
-      progressionMode === "opening-action"
+      isOpeningDraft
         ? i18n.t("opening.titleMain")
         : i18n.t("upgrade.titleMain");
     betweenHeading.accent.textContent =
-      progressionMode === "opening-action"
+      isOpeningDraft
         ? i18n.t("opening.titleAccent")
         : i18n.t("upgrade.titleAccent");
     betweenCopy.textContent =
-      progressionMode === "opening-action"
+      isOpeningDraft
         ? i18n.t("opening.copy")
         : progressionBonusUnlocked
           ? i18n.t("upgrade.copyBonus")
           : i18n.t("upgrade.copy");
     upgradeHistory.textContent =
-      progressionMode === "opening-action"
-        ? i18n.t("opening.history")
+      isOpeningDraft
+        ? progressionSelected.length > 0
+          ? i18n.t("opening.historyWithCards", {
+              count: progressionSelected.length
+            })
+          : i18n.t("opening.history")
         : progressionSelected.length === 0
           ? i18n.t("upgrade.history.empty", { wave: progressionWave })
           : i18n.t("upgrade.history.installed", {
@@ -1123,16 +1263,25 @@ export function createOverlays(
                 .join(" / ")
             });
     upgradeTelemetry.textContent =
-      progressionMode === "opening-action"
-        ? i18n.t("opening.count", { count: progressionChoices.length })
+      isOpeningDraft
+        ? i18n.t("opening.count", {
+            count: progressionChoices.length,
+            picks: progressionPicksRemaining
+          })
         : i18n.t("summary.telemetry", {
             chain: progressionSummary.bestCombo,
             score: progressionSummary.score
           });
     upgradeBuild.textContent =
-      progressionMode === "opening-action"
-        ? i18n.t("opening.build")
+      isOpeningDraft
+        ? i18n.t("opening.build", { picks: progressionPicksRemaining })
         : renderBuildLineFromChoices(progressionSelected);
+    renderDraftRerolls(
+      upgradeRerollButton,
+      upgradeRerollStatus,
+      progressionRerollsRemaining,
+      progressionMode === "upgrade" && progressionChoices.length > 0
+    );
 
     upgradeGrid.replaceChildren(
       ...progressionChoices.map((choice, index) =>
@@ -1140,8 +1289,8 @@ export function createOverlays(
           choice,
           handlers,
           i18n,
-          progressionSelected,
-          index
+          index,
+          { compactAction: isOpeningDraft }
         )
       )
     );
@@ -1159,6 +1308,7 @@ export function createOverlays(
       titleLastRun.textContent = renderLastRunLine();
       updateTitleLastRunBuild();
       renderTitleStats();
+      renderMetaShop();
       const titleGoalCopy = renderNextGoal(records.lastRun
         ? createSummaryFromLastRun(records.lastRun)
         : null);
@@ -1169,12 +1319,14 @@ export function createOverlays(
       chapter,
       availableChoices,
       selectedChoices,
-      rescueBonusUnlocked
+      rescueBonusUnlocked,
+      rerollsRemaining = 0
     ) => {
       chapterTransitionNumber = chapter;
       chapterTransitionAvailable = availableChoices;
       chapterTransitionBonusUnlocked = rescueBonusUnlocked;
       chapterTransitionChoices = selectedChoices;
+      chapterTransitionRerollsRemaining = rerollsRemaining;
       chapterCopy.textContent = rescueBonusUnlocked
         ? i18n.t("chapter.copyBonus")
         : i18n.t("chapter.copy");
@@ -1193,13 +1345,18 @@ export function createOverlays(
       });
       chapterButton.hidden = availableChoices.length > 0;
       chapterActions.hidden = availableChoices.length > 0;
+      renderDraftRerolls(
+        chapterRerollButton,
+        chapterRerollStatus,
+        chapterTransitionRerollsRemaining,
+        availableChoices.length > 0
+      );
       chapterUpgradeGrid.replaceChildren(
         ...availableChoices.map((choice, index) =>
           createUpgradeCard(
             choice,
             handlers,
             i18n,
-            selectedChoices,
             index
           )
         )
@@ -1211,11 +1368,15 @@ export function createOverlays(
       waveNumber,
       summary,
       rescueBonusUnlocked,
-      mode = "upgrade"
+      mode = "upgrade",
+      rerollsRemaining = 0,
+      picksRemaining = 1
     ) => {
       progressionChoices = choices;
       progressionBonusUnlocked = rescueBonusUnlocked;
       progressionMode = mode;
+      progressionPicksRemaining = picksRemaining;
+      progressionRerollsRemaining = rerollsRemaining;
       progressionSelected = selectedChoices;
       progressionWave = waveNumber;
       progressionSummary = summary;
@@ -1226,6 +1387,10 @@ export function createOverlays(
             ? i18n.t("upgrade.copyBonus")
             : i18n.t("upgrade.copy");
       renderProgression();
+    },
+    setMetaProgression: (state) => {
+      metaProgression = state;
+      renderMetaShop();
     },
     setRunSummary: (summary, highlights) => {
       runSummary = summary;
@@ -1332,38 +1497,17 @@ function getBuildCommitmentLabel(
   return isSpanish ? "senal temprana" : "early signal";
 }
 
-function getBuildFitLabel(
-  upgradeId: UpgradeId,
-  selectedChoices: UpgradeChoice[],
-  i18n: I18nController
-): string {
-  const fit = getUpgradeFit(upgradeId, selectedChoices);
-  const isSpanish = i18n.getLocale() === "es";
-
-  switch (fit) {
-    case "anchor":
-      return isSpanish ? "Ancla" : "Anchor";
-    case "surge":
-      return isSpanish ? "Empuja" : "Surge";
-    case "flex":
-      return "Flex";
-    case "pivot":
-      return "Pivot";
-    default:
-      return isSpanish ? "Abre build" : "Open build";
-  }
-}
-
 function createUpgradeCard(
   choice: UpgradeChoice,
   handlers: OverlayHandlers,
   i18n: I18nController,
-  selectedChoices: UpgradeChoice[] = [],
-  slotIndex = 0
+  slotIndex = 0,
+  options: UpgradeCardRenderOptions = {}
 ): HTMLButtonElement {
   const archetypeTags = getUpgradeArchetypeTags(choice.id).slice(0, 2);
   const button = document.createElement("button");
   button.className = getUpgradeCardClassName(choice, archetypeTags);
+  button.classList.toggle("is-compact-action", options.compactAction === true);
   button.type = "button";
   button.addEventListener("click", () => {
     handlers.onSelectUpgrade(choice.id);
@@ -1374,9 +1518,7 @@ function createUpgradeCard(
 
   const kicker = document.createElement("span");
   kicker.className = "upgrade-kicker";
-  kicker.textContent = `${i18n.t("upgrade.option", {
-    count: slotIndex + 1
-  })} / ${getChoiceTypeLabel(choice, i18n)}`;
+  kicker.textContent = i18n.t("upgrade.option", { count: slotIndex + 1 });
 
   const title = document.createElement("span");
   title.className = "upgrade-title";
@@ -1393,66 +1535,11 @@ function createUpgradeCard(
     })
   );
 
-  const tagRail = document.createElement("div");
-  tagRail.className = "upgrade-tag-rail";
   const preview = getUpgradePreview(choice.id, i18n);
   description.textContent = [...preview.bonuses, ...preview.tradeoffs].join(" / ");
-  const fitChip = document.createElement("span");
-  fitChip.className = "upgrade-chip is-fit";
-  fitChip.textContent = getBuildFitLabel(choice.id, selectedChoices, i18n);
-  tagRail.appendChild(fitChip);
 
-  const typeChip = document.createElement("span");
-  typeChip.className = isActionCardId(choice.id)
-    ? "upgrade-chip is-action-type"
-    : "upgrade-chip is-passive-type";
-  typeChip.textContent = isActionCardId(choice.id)
-    ? i18n.getLocale() === "es"
-      ? "<ACCION>"
-      : "<ACTION>"
-    : i18n.getLocale() === "es"
-      ? "<PASIVA>"
-      : "<PASSIVE>";
-  tagRail.appendChild(typeChip);
-
-  if (choice.tier === "elite") {
-    const chip = document.createElement("span");
-    chip.className = "upgrade-chip is-elite";
-    chip.textContent = i18n.getLocale() === "es" ? "Legendaria" : "Legendary";
-    tagRail.appendChild(chip);
-  }
-
-  for (const archetype of archetypeTags) {
-    const chip = document.createElement("span");
-    chip.className = "upgrade-chip is-build";
-    chip.textContent = getBuildLabel(archetype, i18n);
-    tagRail.appendChild(chip);
-  }
-
-  for (const item of preview.bonuses) {
-    const chip = document.createElement("span");
-    chip.className = "upgrade-chip is-boost";
-    chip.textContent = item;
-    tagRail.appendChild(chip);
-  }
-
-  for (const item of preview.tradeoffs) {
-    const chip = document.createElement("span");
-    chip.className = "upgrade-chip is-tradeoff";
-    chip.textContent = item;
-    tagRail.appendChild(chip);
-  }
-
-  button.append(kicker, title, cardPreview, description, tagRail);
+  button.append(kicker, title, cardPreview, description);
   return button;
-}
-
-function getChoiceTypeLabel(choice: UpgradeChoice, i18n: I18nController): string {
-  if (isActionCardId(choice.id)) {
-    return i18n.getLocale() === "es" ? "Accion" : "Action";
-  }
-
-  return i18n.getLocale() === "es" ? "Pasiva" : "Passive";
 }
 
 function getUpgradeCardClassName(
@@ -1618,6 +1705,109 @@ function createRunMetricCard(
   };
 }
 
+function createMetaUpgradeButton(
+  upgradeId: MetaUpgradeId,
+  state: MetaProgressionState,
+  handlers: OverlayHandlers,
+  i18n: I18nController
+): HTMLButtonElement {
+  const definition = META_UPGRADES.find((upgrade) => upgrade.id === upgradeId);
+  if (!definition) {
+    throw new Error(`Unknown meta upgrade: ${upgradeId}`);
+  }
+
+  const rank = getMetaUpgradeRank(state, upgradeId);
+  const maxRank = definition.costs.length;
+  const nextCost = getNextMetaUpgradeCost(state, upgradeId);
+  const copy = definition.copy[i18n.getLocale()];
+  const isMaxed = nextCost === null;
+  const canAfford = !isMaxed && state.wallet >= nextCost;
+  const button = document.createElement("button");
+  button.className = "meta-upgrade-button";
+  button.type = "button";
+  button.disabled = isMaxed || !canAfford;
+  button.setAttribute(
+    "aria-label",
+    `${copy.title}. ${copy.effect}. ${rank}/${maxRank}. ${
+      isMaxed ? i18n.t("meta.maxed") : formatMoney(nextCost)
+    }`
+  );
+  button.addEventListener("click", () => {
+    handlers.onPurchaseMetaUpgrade(upgradeId);
+  });
+
+  const icon = createMetaUpgradeIcon(rank, upgradeId);
+
+  const body = document.createElement("span");
+  body.className = "meta-upgrade-body";
+
+  const header = document.createElement("span");
+  header.className = "meta-upgrade-row";
+
+  const title = document.createElement("span");
+  title.className = "meta-upgrade-name";
+  title.textContent = copy.title;
+
+  const rankLabel = document.createElement("span");
+  rankLabel.className = "meta-upgrade-rank";
+  rankLabel.textContent = i18n.t("meta.rank", {
+    max: maxRank,
+    rank
+  });
+
+  const effect = document.createElement("span");
+  effect.className = "meta-upgrade-effect";
+  effect.textContent = copy.effect;
+
+  const price = document.createElement("span");
+  price.className = "meta-upgrade-price";
+  price.textContent = isMaxed
+    ? i18n.t("meta.maxed")
+    : canAfford
+      ? i18n.t("meta.buy", { cost: formatMoney(nextCost) })
+      : i18n.t("meta.need", { cost: formatMoney(nextCost) });
+
+  header.append(title, rankLabel);
+  body.append(header, effect, price);
+  button.append(icon, body);
+  return button;
+}
+
+function createMetaUpgradeIcon(
+  rank: number,
+  upgradeId: MetaUpgradeId
+): HTMLSpanElement {
+  const stack = document.createElement("span");
+  stack.className = `meta-card-stack is-${META_UPGRADE_ICON_CLASS[upgradeId]}`;
+  stack.setAttribute("aria-hidden", "true");
+
+  const baseCard = document.createElement("span");
+  baseCard.className = "meta-card-icon is-base";
+  baseCard.appendChild(createMetaUpgradeSymbol());
+  stack.appendChild(baseCard);
+
+  for (let index = 0; index < rank; index += 1) {
+    const card = document.createElement("span");
+    card.className = "meta-card-icon is-earned";
+    card.style.setProperty("--stack-index", `${index + 1}`);
+    card.appendChild(createMetaUpgradeSymbol());
+    stack.appendChild(card);
+  }
+
+  return stack;
+}
+
+function createMetaUpgradeSymbol(): HTMLSpanElement {
+  const symbol = document.createElement("span");
+  symbol.className = "meta-card-symbol";
+  symbol.append(
+    document.createElement("span"),
+    document.createElement("span"),
+    document.createElement("span")
+  );
+  return symbol;
+}
+
 function getUpgradePreview(
   upgradeId: UpgradeId,
   i18n: I18nController
@@ -1682,17 +1872,17 @@ function getUpgradePreview(
       };
     case "card-purge":
       return {
-        bonuses: [isSpanish ? "Carta" : "Card", isSpanish ? "Limpia mobs" : "Mob wipe"],
+        bonuses: [isSpanish ? "Limpia mobs" : "Mob wipe"],
         tradeoffs: [isSpanish ? "1 uso" : "1 use"]
       };
     case "card-repair":
       return {
-        bonuses: [isSpanish ? "Carta" : "Card", isSpanish ? "+ Cura" : "+ Heal"],
+        bonuses: [isSpanish ? "+ Cura" : "+ Heal"],
         tradeoffs: [isSpanish ? "1 uso" : "1 use"]
       };
     case "card-overcore":
       return {
-        bonuses: [isSpanish ? "Carta" : "Card", isSpanish ? "+ Senal max" : "+ Max signal"],
+        bonuses: [isSpanish ? "+ Senal max" : "+ Max signal"],
         tradeoffs: [isSpanish ? "1 uso" : "1 use"]
       };
     case "chatgpt-router":
