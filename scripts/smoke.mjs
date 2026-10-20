@@ -63,6 +63,30 @@ assert(
   "index.html must expose a lightweight favicon.ico avatar."
 );
 assert(
+  /<html\s+lang=["'][a-z]{2}["']/.test(indexHtml) &&
+    indexHtml.includes('rel="canonical" href="https://demonetized.iaen.es/"') &&
+    indexHtml.includes('name="description"') &&
+    indexHtml.includes('property="og:image" content="https://demonetized.iaen.es/og-image.jpg"') &&
+    indexHtml.includes('property="og:image:width" content="1200"') &&
+    indexHtml.includes('property="og:image:height" content="630"') &&
+    indexHtml.includes('name="twitter:card" content="summary_large_image"') &&
+    indexHtml.includes('"@type": "VideoGame"') &&
+    indexHtml.includes('"name": "IAnMove"') &&
+    indexHtml.includes("https://x.com/TheINAOG") &&
+    indexHtml.includes("https://github.com/IAnMove") &&
+    readProjectFile("public/robots.txt").includes(
+      "Sitemap: https://demonetized.iaen.es/sitemap.xml"
+    ) &&
+    readProjectFile("public/sitemap.xml").includes("<loc>https://demonetized.iaen.es/</loc>"),
+  "index.html should expose lang, canonical, social cards, VideoGame JSON-LD, robots, and sitemap."
+);
+assert(
+  overlaySource.includes("https://games.iaen.es/") &&
+    overlaySource.includes("Más juegos en games.iaen.es") &&
+    stylesSource.includes(".more-games"),
+  "Title and end screens should keep a discreet games.iaen.es link."
+);
+assert(
   indexHtml.includes("<title>DEMONETIZED: The Authenticity Purge</title>") &&
     indexHtml.includes("boot-intro") &&
     indexHtml.includes("tope-cover-light.webp") &&

@@ -2106,6 +2106,37 @@ button.draft-reroll-button:disabled:hover {
   color: #fff0cb;
 }
 
+.more-games {
+  margin: 0.7rem 0 0;
+  color: rgba(172, 188, 218, 0.62);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: none;
+}
+
+.more-games a {
+  color: rgba(152, 167, 194, 0.86);
+  text-decoration: none;
+}
+
+.more-games a:hover,
+.more-games a:focus-visible {
+  color: #fff0cb;
+}
+
+.title-screen > .more-games.is-screen-footer {
+  pointer-events: auto;
+  position: absolute;
+  z-index: 2;
+  right: clamp(1rem, 4vw, 4.2rem);
+  bottom: max(0.4rem, env(safe-area-inset-bottom));
+  left: auto;
+  margin: 0;
+  text-align: right;
+}
+
 .hud {
   position: absolute;
   inset: 0;
@@ -2886,7 +2917,7 @@ button.action-card:focus-visible::after {
     height: auto;
     max-height: calc(100dvh - 5.85rem);
     overflow: auto;
-    padding: 0;
+    padding: 0 0 1.7rem;
   }
 
   .title-contract-panel,
