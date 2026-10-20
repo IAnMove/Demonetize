@@ -27,6 +27,9 @@ const ABOUT_LINKS = {
   x: "https://x.com/TheINAOG"
 } as const;
 
+const MORE_GAMES_HREF = "https://games.iaen.es/";
+const MORE_GAMES_LABEL = "Más juegos en games.iaen.es";
+
 const META_UPGRADE_ICON_CLASS: Record<MetaUpgradeId, string> = {
   "aggressive-audit": "damage",
   "collection-reach": "pickup",
@@ -317,7 +320,7 @@ export function createOverlays(
     titleActions
   );
   titlePanel.append(titleContractPanel, metaShop);
-  titleScreen.appendChild(titlePanel);
+  titleScreen.append(titlePanel, createMoreGamesLink("more-games is-screen-footer"));
 
   const chapterScreen = document.createElement("section");
   chapterScreen.className = "screen";
@@ -495,7 +498,8 @@ export function createOverlays(
     gameOverInstalled,
     restartActions,
     gameOverLegend,
-    gameOverAbout
+    gameOverAbout,
+    createMoreGamesLink()
   );
   gameOverScreen.appendChild(gameOverPanel);
 
@@ -563,7 +567,8 @@ export function createOverlays(
     victoryGoal,
     victorySummary,
     victoryInstalled,
-    victoryActions
+    victoryActions,
+    createMoreGamesLink()
   );
   victoryScreen.appendChild(victoryPanel);
 
@@ -1694,6 +1699,18 @@ function createTagline(): HTMLParagraphElement {
   const tagline = document.createElement("p");
   tagline.className = "tagline";
   return tagline;
+}
+
+function createMoreGamesLink(className = "more-games"): HTMLParagraphElement {
+  const line = document.createElement("p");
+  line.className = className;
+
+  const link = document.createElement("a");
+  link.href = MORE_GAMES_HREF;
+  link.textContent = MORE_GAMES_LABEL;
+
+  line.append(link);
+  return line;
 }
 
 function createRunHighlightChips(
